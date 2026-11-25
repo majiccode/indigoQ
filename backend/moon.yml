@@ -1,0 +1,55 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+language: 'python'
+layer: 'application'
+stack: 'backend'
+tags: ['api']
+
+project:
+  title: 'indigoQ API'
+  description: 'FastAPI service that persists the indigoQ workspace graph.'
+
+tasks:
+  setup:
+    command: 'uv sync'
+    toolchains: 'system'
+    inputs:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+    options:
+      cache: false
+
+  dev:
+    command: 'uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8787'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  start:
+    command: 'uv run uvicorn app.main:app --host 0.0.0.0 --port 8787'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  build:
+    command: 'uv run python -m compileall -q app'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  test:
+    command: 'uv run pytest'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  lint:
+    command: 'uv run ruff check .'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  format:
+    command: 'uv run ruff format .'
+    toolchains: 'system'

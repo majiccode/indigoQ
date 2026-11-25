@@ -1,0 +1,19 @@
+.DS_Store
+
+# moon
+.moon/cache
+.moon/docker
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+backend/data/*.json
+
+# node
+node_modules/
+.next/
+out/
+*.tsbuildinfo

@@ -1,0 +1,59 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+language: 'typescript'
+layer: 'application'
+stack: 'frontend'
+tags: ['web', 'canvas']
+
+project:
+  title: 'indigoQ canvas'
+  description: 'Infinite canvas UI for indigoQ, built with Next.js and React.'
+
+tasks:
+  setup:
+    command: 'pnpm install --frozen-lockfile'
+    toolchains: 'system'
+    inputs:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+    options:
+      cache: false
+
+  dev:
+    command: 'pnpm dev'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  build:
+    command: 'pnpm build'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+    inputs:
+      - 'src/**/*'
+      - 'public/**/*'
+      - 'package.json'
+      - 'next.config.ts'
+      - 'tsconfig.json'
+    outputs:
+      - '.next'
+
+  lint:
+    command: 'pnpm lint'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  typecheck:
+    command: 'pnpm typecheck'
+    toolchains: 'system'
+    deps:
+      - '~:setup'
+
+  start:
+    command: 'pnpm start'
+    toolchains: 'system'
+    deps:
+      - '~:build'
