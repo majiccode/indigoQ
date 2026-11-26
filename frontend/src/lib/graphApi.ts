@@ -69,3 +69,34 @@ export async function clearGraph(): Promise<void> {
     throw new Error(`Graph reset failed with ${response.status}`);
   }
 }
+
+export async function uploadContents(
+  workspaceId: string,
+  files: FileList | File[],
+): Promise<GraphSnapshot> {
+  const formData = new FormData();
+  for (const file of Array.from(files)) {
+    formData.append("files", file);
+  }
+  const response = await fetch(`${API_BASE}/api/workspaces/${workspaceId}/contents`, {
+    method: "POST",
+    body: formData,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Upload failed with ${response.status}`);
+  }
+  const payload: unknown = await response.json();
+  const graph = normalizeGraph(payload);
+  if (!graph) {
+    throw new Error("Upload response was not valid");
+  }
+  const updatedAt =
+    typeof payload === "object" &&
+    payload !== null &&
+    "updatedAt" in payload &&
+    typeof (payload as { updatedAt?: unknown }).updatedAt === "string"
+      ? (payload as { updatedAt: string }).updatedAt
+      : null;
+  return { ...graph, updatedAt };
+}

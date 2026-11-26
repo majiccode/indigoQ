@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -20,6 +22,16 @@ class Port(ApiModel):
     t: float = Field(ge=0.0, le=1.0)
 
 
+class ContentEntry(ApiModel):
+    """A piece of content dropped into a content-source workspace."""
+
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._:-]+$")
+    name: str = Field(min_length=1, max_length=255)
+    mimeType: str = Field(min_length=1, max_length=120)
+    size: int = Field(ge=0, le=100_000_000)
+    dataUrl: str = Field(min_length=1)
+
+
 class Workspace(ApiModel):
     """An isolated unit on the infinite canvas."""
 
@@ -29,6 +41,8 @@ class Workspace(ApiModel):
     y: float = Field(ge=-10_000_000, le=10_000_000)
     width: float = Field(ge=80, le=20_000)
     height: float = Field(ge=60, le=20_000)
+    type: str | None = Field(default=None, max_length=80)
+    contents: list[ContentEntry] = Field(default_factory=list, max_length=1000)
 
 
 class Wire(ApiModel):

@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -30,8 +31,10 @@ import {
   worldToScreen,
   type Route,
 } from "@/lib/geometry";
-import { fetchGraph, saveGraph } from "@/lib/graphApi";
+import { fetchGraph, saveGraph, uploadContents } from "@/lib/graphApi";
 import { createSampleGraph } from "@/lib/graph";
+import WorkspaceContent from "@/components/Workspace";
+import GraphWorkspace from "@/components/GraphWorkspace";
 import type { HoverState, InteractionMode, WireTarget } from "@/lib/interaction";
 import {
   readCleared,
@@ -41,7 +44,13 @@ import {
   writeLocalGraph,
   writeLocalViewport,
 } from "@/lib/localGraph";
-import type { Graph, Point, Viewport, Workspace, Wire } from "@/lib/types";
+import type {
+  Graph,
+  Point,
+  Viewport,
+  Workspace,
+  Wire,
+} from "@/lib/types";
 
 const PORT_HIT_PX = 10;
 const TARGET_HIT_PX = 34;
@@ -125,6 +134,7 @@ export default function CanvasBoard({
   const [nameDraft, setNameDraft] = useState("");
   const [sync, setSync] = useState<SyncState>("loading");
   const [zoomPct, setZoomPct] = useState(100);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const router = useRouter();
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -142,8 +152,9 @@ export default function CanvasBoard({
   const bootstrappedRef = useRef(false);
   const initialFitRef = useRef(false);
   const saveVersionRef = useRef(0);
-  const focusedFitRef = useRef(false);
+  const fullscreenViewportRef = useRef<Viewport | null>(null);
   const viewportTimerRef = useRef<number | null>(null);
+  const dragOverRef = useRef<string | null>(null);
 
   const queueRemoteSave = useCallback((next: Graph) => {
     const version = saveVersionRef.current + 1;
@@ -165,13 +176,13 @@ export default function CanvasBoard({
   }, []);
 
   const queueViewportSave = useCallback(() => {
-    const viewport = viewportRef.current;
+    writeLocalViewport(viewportRef.current);
     if (viewportTimerRef.current !== null) {
       window.clearTimeout(viewportTimerRef.current);
     }
     viewportTimerRef.current = window.setTimeout(() => {
       viewportTimerRef.current = null;
-      writeLocalViewport(viewport);
+      writeLocalViewport(viewportRef.current);
     }, 300);
   }, []);
 
@@ -267,7 +278,10 @@ export default function CanvasBoard({
 
   const zoomBy = useCallback((factor: number, anchor?: Point) => {
     const { width, height } = sizeRef.current;
-    const viewport = viewportRef.current;
+    const viewport =
+      focusWorkspaceIdProp && fullscreenViewportRef.current
+        ? fullscreenViewportRef.current
+        : viewportRef.current;
     const anchorX = anchor?.x ?? width / 2;
     const anchorY = anchor?.y ?? height / 2;
     const nextScale = clamp(viewport.scale * factor, MIN_SCALE, MAX_SCALE);
@@ -275,14 +289,19 @@ export default function CanvasBoard({
 
     const worldX = (anchorX - viewport.x) / viewport.scale;
     const worldY = (anchorY - viewport.y) / viewport.scale;
-    viewportRef.current = {
+    const nextViewport = {
       scale: nextScale,
       x: anchorX - worldX * nextScale,
       y: anchorY - worldY * nextScale,
     };
+    if (focusWorkspaceIdProp && fullscreenViewportRef.current) {
+      fullscreenViewportRef.current = nextViewport;
+    } else {
+      viewportRef.current = nextViewport;
+    }
     setZoomPct(Math.round(nextScale * 100));
-    queueViewportSave();
-  }, [queueViewportSave]);
+    if (!focusWorkspaceIdProp) queueViewportSave();
+  }, [queueViewportSave, focusWorkspaceIdProp]);
 
   const maybeInitialFit = useCallback(() => {
     if (initialFitRef.current || !bootstrappedRef.current) return;
@@ -299,6 +318,76 @@ export default function CanvasBoard({
     }
     fitView();
   }, [fitView, focusWorkspaceIdProp]);
+
+  // Reset the isolated fullscreen viewport whenever the focused workspace changes
+  // so each workspace view is fitted independently (its own pan/zoom state).
+  useEffect(() => {
+    fullscreenViewportRef.current = null;
+  }, [focusWorkspaceIdProp]);
+
+  const handleDragOver = useCallback(
+    (event: ReactDragEvent<HTMLCanvasElement>) => {
+      event.preventDefault();
+      const canvas = event.currentTarget;
+      const screen = screenPointFromEvent({
+        clientX: event.clientX,
+        clientY: event.clientY,
+        currentTarget: canvas,
+      });
+      const world = screenToWorld(viewportRef.current, screen);
+      const workspace = workspaceAt(graphRef.current.workspaces, world);
+      dragOverRef.current = workspace ? workspace.id : null;
+      canvas.style.cursor = workspace ? "copy" : "no-drop";
+    },
+    [],
+  );
+
+  const handleDragLeave = useCallback((event: ReactDragEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    dragOverRef.current = null;
+    event.currentTarget.style.cursor = "default";
+  }, []);
+
+  const handleDrop = useCallback(
+    async (event: ReactDragEvent<HTMLCanvasElement>) => {
+      event.preventDefault();
+      dragOverRef.current = null;
+      const canvas = event.currentTarget;
+      canvas.style.cursor = "default";
+
+      const files = event.dataTransfer.files;
+      if (!files || files.length === 0) return;
+
+      const screen = screenPointFromEvent({
+        clientX: event.clientX,
+        clientY: event.clientY,
+        currentTarget: canvas,
+      });
+      const world = screenToWorld(viewportRef.current, screen);
+      const workspace = workspaceAt(graphRef.current.workspaces, world);
+      if (!workspace) return;
+
+      const targetId = workspace.id;
+      try {
+        const updated = await uploadContents(targetId, files);
+        const next = {
+          ...updated,
+          workspaces: updated.workspaces,
+          wires: updated.wires,
+        };
+        graphRef.current = next;
+        sceneRevRef.current += 1;
+        setGraph(next);
+        writeLocalGraph(next);
+        selectWorkspace(targetId);
+        setUploadError(null);
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Upload failed");
+        setTimeout(() => setUploadError(null), 4000);
+      }
+    },
+    [selectWorkspace],
+  );
 
   const cancelInteraction = useCallback(() => {
     const mode = modeRef.current;
@@ -387,31 +476,6 @@ export default function CanvasBoard({
   }, [maybeInitialFit]);
 
   useEffect(() => {
-    if (!focusWorkspaceIdProp || focusedFitRef.current) return;
-    const workspace = graphRef.current.workspaces.find(
-      (item) => item.id === focusWorkspaceIdProp,
-    );
-    if (!workspace || !sizeRef.current.width || !sizeRef.current.height) return;
-    focusedFitRef.current = true;
-    const { width, height } = sizeRef.current;
-    const padding = 60;
-    const scale = clamp(
-      Math.min((width - padding * 2) / workspace.width, (height - padding * 2) / workspace.height),
-      MIN_SCALE,
-      MAX_SCALE,
-    );
-    const worldX = workspace.x + workspace.width / 2;
-    const worldY = workspace.y + workspace.height / 2;
-    viewportRef.current = {
-      scale,
-      x: width / 2 - worldX * scale,
-      y: height / 2 - worldY * scale,
-    };
-    setZoomPct(Math.round(scale * 100));
-    selectWorkspace(workspace.id);
-  }, [focusWorkspaceIdProp, fitView, selectWorkspace]);
-
-  useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
@@ -445,6 +509,10 @@ export default function CanvasBoard({
     if (!canvas) return;
 
     const handleWheel = (event: WheelEvent) => {
+      // Let an interactive workspace scroll its own grid/viewer. Modified wheel
+      // remains graph zoom; preview surfaces bubble wheel events to the graph.
+      if (!event.ctrlKey && !event.metaKey && event.target instanceof Element &&
+          event.target.closest('.graph-workspace-content[data-detail="interactive"]')) return;
       event.preventDefault();
       if (renamingRef.current) cancelRename();
 
@@ -473,26 +541,36 @@ export default function CanvasBoard({
         deltaY = 0;
       }
 
-      const viewport = viewportRef.current;
-      viewportRef.current = {
+      const viewport =
+        focusWorkspaceIdProp && fullscreenViewportRef.current
+          ? fullscreenViewportRef.current
+          : viewportRef.current;
+      const nextViewport = {
         ...viewport,
         x: viewport.x - deltaX,
         y: viewport.y - deltaY,
       };
+      if (focusWorkspaceIdProp && fullscreenViewportRef.current) {
+        fullscreenViewportRef.current = nextViewport;
+      } else {
+        viewportRef.current = nextViewport;
+        queueViewportSave();
+      }
     };
 
     const handleContextMenu = (event: Event) => {
       event.preventDefault();
     };
 
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    const wheelTarget: HTMLElement = stageRef.current ?? canvas;
+    wheelTarget.addEventListener("wheel", handleWheel, { passive: false });
     canvas.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
-      canvas.removeEventListener("wheel", handleWheel);
+      wheelTarget.removeEventListener("wheel", handleWheel);
       canvas.removeEventListener("contextmenu", handleContextMenu);
     };
-  }, [cancelRename, zoomBy]);
+  }, [cancelRename, zoomBy, focusWorkspaceIdProp, queueViewportSave]);
 
   useEffect(() => {
     const isEditable = (target: EventTarget | null): boolean => {
@@ -653,12 +731,43 @@ export default function CanvasBoard({
           lastRevision = sceneRevRef.current;
         }
 
+        let renderViewport = viewportRef.current;
+        if (focusWorkspaceIdProp) {
+          const workspace = currentGraph.workspaces.find(
+            (item) => item.id === focusWorkspaceIdProp,
+          );
+          if (workspace && fullscreenViewportRef.current) {
+            renderViewport = fullscreenViewportRef.current;
+          } else if (workspace) {
+            const { width, height } = size;
+            const padding = 60;
+            const scale = clamp(
+              Math.min(
+                (width - padding * 2) / workspace.width,
+                (height - padding * 2) / workspace.height,
+              ),
+              MIN_SCALE,
+              MAX_SCALE,
+            );
+            const worldX = workspace.x + workspace.width / 2;
+            const worldY = workspace.y + workspace.height / 2;
+            fullscreenViewportRef.current = {
+              scale,
+              x: width / 2 - worldX * scale,
+              y: height / 2 - worldY * scale,
+            };
+            renderViewport = fullscreenViewportRef.current;
+            setZoomPct(Math.round(scale * 100));
+            selectWorkspace(workspace.id);
+          }
+        }
+
         drawScene({
           ctx,
           width: size.width,
           height: size.height,
           dpr: size.dpr,
-          viewport: viewportRef.current,
+          viewport: renderViewport,
           workspaces: viewWorkspaces,
           wires: viewWires,
           routes,
@@ -668,6 +777,7 @@ export default function CanvasBoard({
           mode: modeRef.current,
           time,
         });
+
       }
 
       animationFrame = window.requestAnimationFrame(render);
@@ -675,7 +785,7 @@ export default function CanvasBoard({
 
     animationFrame = window.requestAnimationFrame(render);
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [focusWorkspaceIdProp]);
+  }, [focusWorkspaceIdProp, selectWorkspace]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -685,7 +795,10 @@ export default function CanvasBoard({
 
       const canvas = event.currentTarget;
       const screen = screenPointFromEvent(event);
-      const viewport = viewportRef.current;
+      const viewport =
+        focusWorkspaceIdProp && fullscreenViewportRef.current
+          ? fullscreenViewportRef.current
+          : viewportRef.current;
       const world = screenToWorld(viewport, screen);
 
       if (event.button === 1 || spaceRef.current) {
@@ -765,7 +878,7 @@ export default function CanvasBoard({
       modeRef.current = { kind: "create", start: world, current: world };
       canvas.style.cursor = "crosshair";
     },
-    [commitRename, selectWorkspace],
+    [commitRename, selectWorkspace, focusWorkspaceIdProp],
   );
 
   const handlePointerMove = useCallback(
@@ -777,12 +890,17 @@ export default function CanvasBoard({
       const mode = modeRef.current;
 
       if (mode.kind === "pan") {
-        viewportRef.current = {
+        const nextViewport = {
           ...mode.startViewport,
           x: mode.startViewport.x + (screen.x - mode.startScreen.x),
           y: mode.startViewport.y + (screen.y - mode.startScreen.y),
         };
-        queueViewportSave();
+        if (focusWorkspaceIdProp && fullscreenViewportRef.current) {
+          fullscreenViewportRef.current = nextViewport;
+        } else {
+          viewportRef.current = nextViewport;
+        }
+        if (!focusWorkspaceIdProp) queueViewportSave();
         return;
       }
 
@@ -882,7 +1000,7 @@ export default function CanvasBoard({
         canvas.style.cursor = "default";
       }
     },
-    [queueViewportSave],
+    [queueViewportSave, focusWorkspaceIdProp],
   );
 
   const handlePointerUp = useCallback(
@@ -904,6 +1022,8 @@ export default function CanvasBoard({
             y: rect.y,
             width: Math.max(rect.width, MIN_WORKSPACE_WIDTH),
             height: Math.max(rect.height, MIN_WORKSPACE_HEIGHT),
+            type: null,
+            contents: [],
           };
           writeCleared(false);
           commitGraph({
@@ -989,9 +1109,11 @@ export default function CanvasBoard({
       if (pointInHeader(workspace, world)) {
         selectWorkspace(workspace.id);
         openRename(workspace);
-      } else {
-        router.push(`/workspace?id=${workspace.id}`);
+        return;
       }
+
+      writeLocalViewport(viewportRef.current);
+      router.push(`/workspace?id=${workspace.id}`);
     },
     [router, openRename, selectWorkspace],
   );
@@ -1050,7 +1172,58 @@ export default function CanvasBoard({
         onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerLeave}
         onDoubleClick={handleDoubleClick}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       />
+      <div className="workspace-layer">
+        {graph.workspaces.map((workspace) => (
+          <GraphWorkspace
+            key={workspace.id}
+            workspace={workspace}
+            graphRef={graphRef}
+            viewportRef={viewportRef}
+            onPointerDown={(event) => {
+              selectWorkspace(workspace.id);
+              // Preserve canvas panning over child components.
+              if (spaceRef.current || event.button === 1) {
+                canvasRef.current?.dispatchEvent(new PointerEvent("pointerdown", {
+                  bubbles: true, clientX: event.clientX, clientY: event.clientY,
+                  button: event.button, pointerId: event.pointerId,
+                }));
+                event.preventDefault();
+              }
+            }}
+            onOpen={() => {
+              writeLocalViewport(viewportRef.current);
+              router.push(`/workspace?id=${encodeURIComponent(workspace.id)}`);
+            }}
+          >
+            <WorkspaceContent
+              workspace={workspace}
+              onUpload={async (id, files) => {
+                if (saveTimerRef.current !== null) {
+                  window.clearTimeout(saveTimerRef.current);
+                  saveTimerRef.current = null;
+                }
+                await saveGraph(graphRef.current);
+                const snapshot = await uploadContents(id, files);
+                const next = snapshot.workspaces.find((item) => item.id === id);
+                if (!next) throw new Error("Workspace missing from upload response");
+                return next;
+              }}
+              onWorkspaceChange={(next) => {
+                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => item.id === next.id ? { ...item, type: next.type, contents: next.contents } : item) };
+                graphRef.current = updated;
+                sceneRevRef.current += 1;
+                setGraph(updated);
+                writeLocalGraph(updated);
+                setSync("saved");
+              }}
+            />
+          </GraphWorkspace>
+        ))}
+      </div>
 
       {graph.workspaces.length === 0 ? (
         <div className="canvas-empty" aria-hidden>
@@ -1101,6 +1274,28 @@ export default function CanvasBoard({
           }}
         />
       ) : null}
+
+      {uploadError && (
+        <div className="canvas-error" aria-live="polite">
+          <span>Upload failed: {uploadError}</span>
+          <button
+            type="button"
+            className="hud-button"
+            onClick={() => setUploadError(null)}
+            aria-label="Dismiss"
+          >
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+              <path
+                d="M4 4l8 8M4 12l8-8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <div className="canvas-hints" aria-hidden>
         <span>
@@ -1196,6 +1391,7 @@ export default function CanvasBoard({
         Double-click the body to open a workspace. Double-click the header to rename it. Drag a
         corner to resize. Press Delete to remove the selected workspace, and press Escape to cancel.
       </p>
+
     </div>
   );
 }

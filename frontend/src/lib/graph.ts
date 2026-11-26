@@ -1,4 +1,11 @@
-import type { Graph, Port, PortSide, Wire, Workspace } from "./types";
+import type {
+  ContentEntry,
+  Graph,
+  Port,
+  PortSide,
+  Wire,
+  Workspace,
+} from "./types";
 
 const PORT_SIDES: readonly PortSide[] = ["top", "right", "bottom", "left"];
 
@@ -16,6 +23,18 @@ function isPort(value: unknown): value is Port {
     typeof value.side === "string" &&
     (PORT_SIDES as readonly string[]).includes(value.side) &&
     isFiniteNumber(value.t)
+  );
+}
+
+function isContentEntry(value: unknown): value is ContentEntry {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    value.id.length > 0 &&
+    typeof value.name === "string" &&
+    typeof value.mimeType === "string" &&
+    isFiniteNumber(value.size) &&
+    typeof value.dataUrl === "string"
   );
 }
 
@@ -53,6 +72,9 @@ export function normalizeGraph(value: unknown): Graph | null {
   for (const raw of value.workspaces) {
     if (!isWorkspace(raw) || workspaceIds.has(raw.id)) continue;
     workspaceIds.add(raw.id);
+    const rawContents = Array.isArray(raw.contents)
+      ? raw.contents.filter(isContentEntry)
+      : [];
     workspaces.push({
       id: raw.id,
       name: raw.name.trim().slice(0, 80) || "Untitled workspace",
@@ -60,6 +82,8 @@ export function normalizeGraph(value: unknown): Graph | null {
       y: raw.y,
       width: Math.max(120, raw.width),
       height: Math.max(80, raw.height),
+      type: typeof raw.type === "string" ? raw.type : null,
+      contents: rawContents,
     });
   }
 
@@ -91,9 +115,9 @@ export function normalizeGraph(value: unknown): Graph | null {
 export function createSampleGraph(): Graph {
   return {
     workspaces: [
-      { id: "ws-ingest", name: "Ingest", x: -620, y: -180, width: 300, height: 200 },
-      { id: "ws-enrich", name: "Enrich", x: -160, y: 40, width: 320, height: 210 },
-      { id: "ws-publish", name: "Publish", x: 340, y: -200, width: 300, height: 200 },
+      { id: "ws-ingest", name: "Ingest", x: -620, y: -180, width: 300, height: 200, type: null, contents: [] },
+      { id: "ws-enrich", name: "Enrich", x: -160, y: 40, width: 320, height: 210, type: null, contents: [] },
+      { id: "ws-publish", name: "Publish", x: 340, y: -200, width: 300, height: 200, type: null, contents: [] },
     ],
     wires: [
       {

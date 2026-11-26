@@ -387,6 +387,19 @@ function paintWorkspaceChrome(
     ctx.fillText(label, workspace.x + 38, centerY + 0.5);
   }
 
+  if (workspace.contents.length > 0 && scale > 0.3) {
+    const badgeSize = Math.max(6, screenWidth(3, scale));
+    const badgeX = workspace.x + workspace.width - badgeSize - 8;
+    const badgeY = workspace.y + workspace.height - badgeSize - 8;
+    ctx.beginPath();
+    ctx.arc(badgeX, badgeY, badgeSize, 0, TAU);
+    ctx.fillStyle = "rgba(139, 92, 246, 0.9)";
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = screenWidth(1, scale);
+    ctx.stroke();
+  }
+
   if (toolbarVisible) {
     const startCenter =
       workspace.x + workspace.width - 18 - toolbarWidth + iconSize / 2;

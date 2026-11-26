@@ -1,4 +1,11 @@
-import type { Point, Port, PortSide, Rect, Viewport, Workspace } from "./types";
+import type {
+  Point,
+  Port,
+  PortSide,
+  Rect,
+  Viewport,
+  Workspace,
+} from "./types";
 
 export const TAU = Math.PI * 2;
 export const BASE_GRID = 28;
@@ -340,4 +347,55 @@ export function gridStep(scale: number): number {
     step /= 2;
   }
   return step;
+}
+
+export const FILE_ICON_SIZE = 24;
+export const FILE_ICON_GAP = 8;
+export const FILE_NAME_HEIGHT = 14;
+export const FILE_ROW_HEIGHT = FILE_ICON_SIZE + FILE_NAME_HEIGHT + FILE_ICON_GAP;
+export const FILE_PADDING = 16;
+
+export interface FileIconRect {
+  entryId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  nameRect: { x: number; y: number; width: number; height: number };
+}
+
+export function computeFileIconRects(
+  workspace: Workspace,
+): FileIconRect[] {
+  const rects: FileIconRect[] = [];
+  const size = FILE_ICON_SIZE;
+  const gap = FILE_ICON_GAP;
+  const startX = workspace.x + FILE_PADDING;
+  const startY = workspace.y + HEADER_HEIGHT + FILE_PADDING;
+  const maxX = workspace.x + workspace.width - FILE_PADDING - size;
+
+  let cx = startX;
+  let cy = startY;
+
+  for (const entry of workspace.contents) {
+    if (cx + size > maxX && cx > startX) {
+      cx = startX;
+      cy += FILE_ROW_HEIGHT;
+    }
+    rects.push({
+      entryId: entry.id,
+      x: cx,
+      y: cy,
+      width: size,
+      height: size,
+      nameRect: {
+        x: cx - FILE_ICON_GAP,
+        y: cy + size,
+        width: size + FILE_ICON_GAP * 2,
+        height: FILE_NAME_HEIGHT,
+      },
+    });
+    cx += size + gap;
+  }
+  return rects;
 }

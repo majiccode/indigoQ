@@ -17,9 +17,19 @@ export interface Port {
   t: number;
 }
 
+export interface ContentEntry {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
+}
+
 export interface Workspace extends Rect {
   id: string;
   name: string;
+  type: string | null;
+  contents: ContentEntry[];
 }
 
 export interface Wire {
