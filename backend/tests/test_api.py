@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 import pytest
@@ -25,7 +26,15 @@ GRAPH = {
 
 TYPED_GRAPH = {
     "workspaces": [
-        {"id": "ingest", "name": "Ingest", "x": 0, "y": 0, "width": 300, "height": 200, "type": "viewer"},
+        {
+            "id": "ingest",
+            "name": "Ingest",
+            "x": 0,
+            "y": 0,
+            "width": 300,
+            "height": 200,
+            "type": "viewer",
+        },
         {"id": "publish", "name": "Publish", "x": 500, "y": 120, "width": 300, "height": 200},
     ],
     "wires": [],
@@ -55,7 +64,7 @@ def test_graph_roundtrip(client: TestClient) -> None:
 
     loaded = client.get("/api/graph").json()
     assert len(loaded["workspaces"]) == len(GRAPH["workspaces"])
-    for loaded_ws, expected_ws in zip(loaded["workspaces"], GRAPH["workspaces"]):
+    for loaded_ws, expected_ws in zip(loaded["workspaces"], GRAPH["workspaces"], strict=True):
         assert loaded_ws["id"] == expected_ws["id"]
         assert loaded_ws["name"] == expected_ws["name"]
         assert loaded_ws["x"] == expected_ws["x"]
@@ -180,3 +189,113 @@ def test_put_rejects_type_change(client: TestClient) -> None:
     graph = client.get("/api/graph").json()
     workspace = next(w for w in graph["workspaces"] if w["id"] == "ingest")
     assert workspace["type"] is None
+
+
+def editor_graph(client: TestClient, reverse: bool = True) -> dict:
+    client.put("/api/graph", json=GRAPH)
+    assert (
+        client.post("/api/workspaces/ingest/type", json={"type": "content-source"}).status_code
+        == 200
+    )
+    assert (
+        client.post("/api/workspaces/publish/type", json={"type": "text-editor"}).status_code == 200
+    )
+    client.post(
+        "/api/workspaces/ingest/contents",
+        files=[("files", ("signal.txt", b"gain = 0.65", "text/plain"))],
+    )
+    graph = client.get("/api/graph").json()
+    graph.pop("updatedAt")
+    if reverse:
+        graph["wires"].append(
+            {**GRAPH["wires"][0], "id": "return", "source": "publish", "target": "ingest"}
+        )
+    assert client.put("/api/graph", json=graph).status_code == 200
+    return graph
+
+
+def test_editor_connected_open_and_save(client: TestClient) -> None:
+    editor_graph(client)
+    opened = client.post(
+        "/api/workspaces/publish/editor/open", json={"workspaceId": "ingest", "fileId": "1"}
+    )
+    assert opened.status_code == 200
+    document = opened.json()["workspaces"][1]["editor"]
+    assert document["text"] == "gain = 0.65"
+    assert document["sourceWorkspaceId"] == "ingest"
+    assert (
+        client.put(
+            "/api/workspaces/publish/editor", json={**document, "text": "gain = 0.8"}
+        ).status_code
+        == 200
+    )
+    saved = client.post(
+        "/api/workspaces/publish/editor/save",
+        json={"workspaceId": "ingest", "name": "edited.txt", "text": "gain = 0.8"},
+    )
+    assert saved.status_code == 200
+    file = saved.json()["workspaces"][0]["contents"][-1]
+    assert file["name"] == "edited.txt"
+    assert base64.b64decode(file["dataUrl"].split(",")[1]) == b"gain = 0.8"
+    assert (
+        client.post(
+            "/api/workspaces/publish/editor/save",
+            json={
+                "workspaceId": "ingest",
+                "fileId": file["id"],
+                "name": "edited.txt",
+                "text": "updated",
+            },
+        ).status_code
+        == 200
+    )
+    assert len(client.get("/api/graph").json()["workspaces"][0]["contents"]) == 2
+
+
+def test_editor_requires_directional_connections(client: TestClient) -> None:
+    editor_graph(client, reverse=False)
+    assert (
+        client.post(
+            "/api/workspaces/publish/editor/open", json={"workspaceId": "ingest", "fileId": "1"}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/workspaces/publish/editor/save",
+            json={"workspaceId": "ingest", "name": "x.txt", "text": "x"},
+        ).status_code
+        == 403
+    )
+    graph = client.get("/api/graph").json()
+    graph.pop("updatedAt")
+    graph["wires"] = []
+    client.put("/api/graph", json=graph)
+    assert (
+        client.post(
+            "/api/workspaces/publish/editor/open", json={"workspaceId": "ingest", "fileId": "1"}
+        ).status_code
+        == 403
+    )
+
+
+def test_editor_rejects_binary_and_type_reassignment(client: TestClient) -> None:
+    editor_graph(client)
+    client.post(
+        "/api/workspaces/ingest/contents",
+        files=[("files", ("binary.bin", b"\x00\xff", "application/octet-stream"))],
+    )
+    assert (
+        client.post(
+            "/api/workspaces/publish/editor/open", json={"workspaceId": "ingest", "fileId": "2"}
+        ).status_code
+        == 415
+    )
+    assert (
+        client.post("/api/workspaces/publish/type", json={"type": "content-source"}).status_code
+        == 409
+    )
+    assert (
+        client.post("/api/workspaces/publish/type", json={"type": "not-registered"}).status_code
+        == 422
+    )

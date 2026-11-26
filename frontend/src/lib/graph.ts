@@ -84,6 +84,10 @@ export function normalizeGraph(value: unknown): Graph | null {
       height: Math.max(80, raw.height),
       type: typeof raw.type === "string" ? raw.type : null,
       contents: rawContents,
+      editor: raw.editor && typeof raw.editor.text === "string" && typeof raw.editor.name === "string"
+        ? { text: raw.editor.text, name: raw.editor.name,
+            sourceWorkspaceId: raw.editor.sourceWorkspaceId ?? null,
+            sourceFileId: raw.editor.sourceFileId ?? null } : null,
     });
   }
 

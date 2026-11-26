@@ -1,7 +1,8 @@
 import FullscreenWorkspaceView from "@/components/FullscreenWorkspaceView";
 import Link from "next/link";
 
-import type { Workspace } from "@/lib/types";
+import type { Graph, Workspace } from "@/lib/types";
+import { normalizeGraph } from "@/lib/graph";
 
 const TOOLBAR_ICONS = ["grid", "play", "sliders", "search"] as const;
 
@@ -13,6 +14,7 @@ export default async function WorkspacePage({
   const params = await searchParams;
   const workspaceId = params.id ?? "";
   let workspace: Workspace | null = null;
+  let graph: Graph = { workspaces: [], wires: [] };
 
   if (workspaceId) {
     try {
@@ -21,9 +23,10 @@ export default async function WorkspacePage({
         { cache: "no-store" },
       );
       if (response.ok) {
-        const snapshot = await response.json();
+        const snapshot = normalizeGraph(await response.json());
+        if (snapshot) graph = snapshot;
         workspace =
-          snapshot.workspaces?.find((item: { id: string }) => item.id === workspaceId) ?? null;
+          graph.workspaces.find((item) => item.id === workspaceId) ?? null;
       }
     } catch {
       workspace = null;
@@ -104,6 +107,7 @@ export default async function WorkspacePage({
       {workspace ? (
         <FullscreenWorkspaceView
           initialWorkspace={workspace}
+          initialGraph={graph}
         />
       ) : (
         <div className="fs-main">

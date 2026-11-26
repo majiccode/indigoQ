@@ -5,11 +5,22 @@ from __future__ import annotations
 import base64
 import os
 from pathlib import Path
+from typing import Annotated
+from uuid import uuid4
 
 from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models import ContentEntry, Graph, GraphSnapshot, Workspace
+from .models import (
+    ContentEntry,
+    EditorDocument,
+    Graph,
+    GraphSnapshot,
+    OpenDocumentRequest,
+    SaveDocumentRequest,
+    Workspace,
+    WorkspaceTypeRequest,
+)
 from .store import GraphStore
 
 APP_VERSION = "0.1.0"
@@ -24,14 +35,10 @@ DEFAULT_ORIGINS = (
 
 
 def create_app(data_file: Path | None = None) -> FastAPI:
-    store = GraphStore(
-        data_file or Path(os.environ.get("INDIGOQ_DATA_FILE", DEFAULT_DATA_FILE))
-    )
+    store = GraphStore(data_file or Path(os.environ.get("INDIGOQ_DATA_FILE", DEFAULT_DATA_FILE)))
     origins = [
         origin.strip()
-        for origin in os.environ.get("INDIGOQ_CORS_ORIGINS", ",".join(DEFAULT_ORIGINS)).split(
-            ","
-        )
+        for origin in os.environ.get("INDIGOQ_CORS_ORIGINS", ",".join(DEFAULT_ORIGINS)).split(",")
         if origin.strip()
     ]
 
@@ -71,7 +78,9 @@ def create_app(data_file: Path | None = None) -> FastAPI:
         return store.save(graph)
 
     @app.post("/api/workspaces/{workspace_id}/contents", response_model=GraphSnapshot)
-    def upload_contents(workspace_id: str, files: list[UploadFile] = File(...)) -> GraphSnapshot:
+    def upload_contents(
+        workspace_id: str, files: Annotated[list[UploadFile], File()]
+    ) -> GraphSnapshot:
         if not files:
             raise HTTPException(status_code=400, detail="no files provided")
 
@@ -91,7 +100,9 @@ def create_app(data_file: Path | None = None) -> FastAPI:
             )
 
         existing_names = {entry.name for entry in workspace.contents}
-        next_index = max([int(entry.id) for entry in workspace.contents if entry.id.isdigit()] or [0])
+        next_index = max(
+            [int(entry.id) for entry in workspace.contents if entry.id.isdigit()] or [0]
+        )
 
         for uploaded in files:
             raw = uploaded.file.read()
@@ -122,6 +133,108 @@ def create_app(data_file: Path | None = None) -> FastAPI:
             workspace.contents.append(entry)
 
         return store.save(graph)
+
+    def find_workspace(graph: Graph, workspace_id: str) -> Workspace:
+        workspace = next((item for item in graph.workspaces if item.id == workspace_id), None)
+        if workspace is None:
+            raise HTTPException(404, "Workspace not found")
+        return workspace
+
+    def editor_workspace(graph: Graph, workspace_id: str) -> Workspace:
+        workspace = find_workspace(graph, workspace_id)
+        if workspace.type != "text-editor":
+            raise HTTPException(409, "Workspace is not a TextEditor")
+        return workspace
+
+    def require_file_connection(graph: Graph, source: str, target: str) -> None:
+        if not any(wire.source == source and wire.target == target for wire in graph.wires):
+            raise HTTPException(403, "A directed wire is required for this operation")
+
+    @app.post("/api/workspaces/{workspace_id}/type", response_model=GraphSnapshot)
+    def set_workspace_type(workspace_id: str, request: WorkspaceTypeRequest) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            workspace = find_workspace(graph, workspace_id)
+            if workspace.type is not None and workspace.type != request.type:
+                raise HTTPException(409, "Workspace type is immutable")
+            workspace.type = request.type
+            if request.type == "text-editor" and workspace.editor is None:
+                workspace.editor = EditorDocument()
+
+        return store.update(change)
+
+    @app.put("/api/workspaces/{workspace_id}/editor", response_model=GraphSnapshot)
+    def update_document(workspace_id: str, document: EditorDocument) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            editor_workspace(graph, workspace_id).editor = document
+
+        return store.update(change)
+
+    @app.post("/api/workspaces/{workspace_id}/editor/open", response_model=GraphSnapshot)
+    def open_document(workspace_id: str, request: OpenDocumentRequest) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            editor = editor_workspace(graph, workspace_id)
+            source = find_workspace(graph, request.workspaceId)
+            require_file_connection(graph, source.id, editor.id)
+            if source.type != CONTENT_SOURCE_TYPE:
+                raise HTTPException(409, "Source does not expose files")
+            entry = next((item for item in source.contents if item.id == request.fileId), None)
+            if entry is None:
+                raise HTTPException(404, "File not found")
+            try:
+                raw = base64.b64decode(entry.dataUrl.split(",", 1)[1], validate=True)
+                text = raw.decode("utf-8-sig")
+                if "\x00" in text:
+                    raise ValueError("Binary file")
+            except (ValueError, UnicodeError, IndexError) as error:
+                raise HTTPException(415, "TextEditor opens UTF-8 text files") from error
+            editor.editor = EditorDocument(
+                text=text,
+                name=entry.name,
+                sourceWorkspaceId=source.id,
+                sourceFileId=entry.id,
+            )
+
+        return store.update(change)
+
+    @app.post("/api/workspaces/{workspace_id}/editor/save", response_model=GraphSnapshot)
+    def save_document(workspace_id: str, request: SaveDocumentRequest) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            editor = editor_workspace(graph, workspace_id)
+            target = find_workspace(graph, request.workspaceId)
+            require_file_connection(graph, editor.id, target.id)
+            if target.type != CONTENT_SOURCE_TYPE:
+                raise HTTPException(409, "Destination does not accept files")
+            entry = (
+                next((item for item in target.contents if item.id == request.fileId), None)
+                if request.fileId
+                else None
+            )
+            if request.fileId and entry is None:
+                raise HTTPException(404, "Destination file not found")
+            if any(item.name == request.name and item is not entry for item in target.contents):
+                raise HTTPException(
+                    409, "A file with this name already exists; choose it to overwrite"
+                )
+            raw = request.text.encode("utf-8")
+            saved = ContentEntry(
+                id=entry.id if entry else str(uuid4()),
+                name=request.name,
+                mimeType="text/plain",
+                size=len(raw),
+                dataUrl="data:text/plain;base64," + base64.b64encode(raw).decode("ascii"),
+            )
+            if entry:
+                target.contents[target.contents.index(entry)] = saved
+            else:
+                target.contents.append(saved)
+            editor.editor = EditorDocument(
+                text=request.text,
+                name=request.name,
+                sourceWorkspaceId=target.id,
+                sourceFileId=saved.id,
+            )
+
+        return store.update(change)
 
     @app.delete("/api/graph", status_code=204)
     def delete_graph() -> Response:

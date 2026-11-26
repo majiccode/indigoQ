@@ -1150,6 +1150,63 @@ input:focus-visible {
   background: #0b0b1a;
 }
 
+.workspace-content { display: flex; flex-direction: column; }
+.workspace-type-toolbar { flex: 0 0 30px; min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px; background: #101021; border-bottom: 1px solid #818cf82b; font-size: 10px; }
+.workspace-type-button { display: flex; align-items: center; gap: 7px; color: #c9cde8; padding: 3px 0; white-space: nowrap; }
+.workspace-type-button:disabled { opacity: 0.8; }
+.workspace-io-label { color: #777eaa; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.workspace-typed-content { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }
+.workspace-type-picker { position: absolute; z-index: 120; inset: 30px 8px auto; padding: 6px; background: #17172e; border: 1px solid #818cf866; border-radius: 9px; box-shadow: 0 15px 40px #0008; }
+.workspace-type-picker button { display: flex; flex-direction: column; text-align: left; gap: 5px; padding: 12px; width: 100%; border-radius: 6px; }
+.workspace-type-picker button:hover { background: #818cf822; }
+.workspace-type-picker small { color: #959bc0; font-size: 11px; }
+
+/* TextEditor is a self-contained application surface in either presentation. */
+.text-editor-workspace { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; overflow: hidden; color: #dce2d3; background: #192019; font-family: ui-sans-serif, system-ui, sans-serif; }
+.editor-toolbar { display: flex; flex: 0 0 36px; align-items: center; gap: 12px; min-width: 0; padding: 0 12px; background: #222b20; border-bottom: 1px solid #43513d; font-size: 11px; }
+.editor-toolbar button { color: #e0e5d7; padding: 5px 8px; border-radius: 4px; }
+.editor-toolbar button:hover { background: #ffffff12; }
+.editor-file-menu { position: relative; }
+.editor-file-menu > button { display: flex; gap: 12px; }
+.editor-document-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #bbc7ad; font-family: Georgia, serif; font-size: 13px; }
+.editor-live-badge { font-size: 8px; letter-spacing: 0.13em; color: #acd58e; white-space: nowrap; }
+.editor-menu { position: absolute; top: 29px; left: 0; z-index: 40; min-width: 200px; padding: 5px; border: 1px solid #53604a; border-radius: 7px; background: #242d21; box-shadow: 0 15px 40px #0008; }
+.editor-menu button { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px; text-align: left; }
+.editor-menu small { color: #8d9f82; }
+.editor-surface { flex: 1 1 0; min-height: 80px; overflow: hidden; }
+.editor-instruments { flex: 0 1 auto; max-height: 38%; overflow: auto; padding: 12px 20px; border-top: 1px solid #6c796355; background: #1b2319; }
+.editor-instrument-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 9px; letter-spacing: 0.08em; color: #91a085; }
+.editor-instrument-heading > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.text-editor-workspace select, .text-editor-workspace input { color: #dce2d3; background: #283224; border: 1px solid #53604a; border-radius: 4px; padding: 5px; min-width: 0; }
+.editor-instrument-row { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding-top: 12px; }
+.editor-inline-instruments { margin: 12px 24px; padding: 8px 0 16px; border-top: 1px solid #aebda37a; border-bottom: 1px solid #aebda37a; font-family: ui-sans-serif, system-ui, sans-serif; }
+.editor-inline-instruments .editor-knob-face { width: 76px; height: 76px; }
+.editor-knobs { display: flex; flex-wrap: wrap; gap: 18px; }
+.editor-knob { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.editor-knob-face { position: relative; display: grid; place-items: center; width: 84px; height: 84px; padding: 3px; border-radius: 50%; }
+.editor-knob-face > span { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; background: #1b2319; width: 100%; height: 100%; border-radius: 50%; }
+.editor-knob i { color: #b6c1ab; font: italic 11px Georgia, serif; }
+.editor-knob strong { font: 15px Georgia, serif; color: #edf1e8; }
+.editor-knob small { font-size: 8px; color: #7e8d73; text-transform: uppercase; letter-spacing: 0.09em; }
+.editor-knob input[type="range"] { position: absolute; inset: 0; opacity: 0.01; width: 100%; height: 100%; cursor: ew-resize; padding: 0; }
+.editor-knob-face:focus-within { outline: 1px solid #d5b9fc; outline-offset: 3px; }
+.editor-selection-graph { width: min(100%, 360px); min-width: 130px; flex: 1 1 160px; height: 110px; }
+.editor-instrument-empty { font: italic 12px/1.6 Georgia, serif; color: #72816a; padding: 14px 0 6px; }
+.editor-footer { flex: 0 0 25px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid #43513d; background: #20291e; font-size: 9px; color: #94a487; }
+.editor-footer > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-dialog-backdrop { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding: 12px; background: #080e08bb; z-index: 50; overflow: auto; }
+.editor-dialog { width: min(100%, 520px); max-height: 100%; overflow: auto; padding: 18px; background: #232d20; border: 1px solid #66765a; border-radius: 10px; box-shadow: 0 20px 60px #0008; }
+.editor-dialog header { display: flex; justify-content: space-between; align-items: center; }
+.editor-dialog header button { font-size: 24px; }
+.editor-dialog p, .editor-dialog small { color: #a3b197; font-size: 11px; line-height: 1.6; }
+.editor-dialog h4 { font-size: 12px; color: #d9e7ca; margin: 15px 0 7px; }
+.editor-dialog label { display: flex; flex-direction: column; gap: 7px; margin: 14px 0; font-size: 11px; }
+.editor-open-file { display: flex; flex-direction: column; width: 100%; align-items: flex-start; gap: 5px; padding: 10px; border-radius: 5px; background: #ffffff05; margin: 4px 0; text-align: left; }
+.editor-open-file:hover { background: #b997ef22; }
+.editor-save-button { width: 100%; padding: 11px; margin: 8px 0 14px; background: #b1c69b; color: #172012; border-radius: 5px; font-weight: 600; }
+.editor-save-button:disabled { opacity: 0.5; }
+.editor-no-connections { font-size: 12px; color: #d3bca0; border: 1px dashed #716348; border-radius: 5px; padding: 20px; margin: 15px 0; }
+
 .workspace-layer {
   position: absolute;
   inset: 0;

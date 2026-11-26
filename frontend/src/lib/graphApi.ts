@@ -1,5 +1,5 @@
 import { normalizeGraph } from "./graph";
-import type { Graph, GraphSnapshot } from "./types";
+import type { EditorDocument, Graph, GraphSnapshot } from "./types";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const REQUEST_TIMEOUT_MS = 4000;
@@ -84,7 +84,8 @@ export async function uploadContents(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(`Upload failed with ${response.status}`);
+    const error = await response.json().catch(() => null);
+    throw new Error(typeof error?.detail === "string" ? error.detail : `Upload failed (${response.status})`);
   }
   const payload: unknown = await response.json();
   const graph = normalizeGraph(payload);
@@ -99,4 +100,30 @@ export async function uploadContents(
       ? (payload as { updatedAt: string }).updatedAt
       : null;
   return { ...graph, updatedAt };
+}
+
+export type WorkspaceOperation =
+  | { kind: "type"; type: string }
+  | { kind: "draft"; document: EditorDocument }
+  | { kind: "open"; workspaceId: string; fileId: string }
+  | { kind: "save"; workspaceId: string; fileId?: string; name: string; text: string };
+
+export async function workspaceOperation(id: string, operation: WorkspaceOperation): Promise<Graph> {
+  let path: string;
+  let method = "POST";
+  let body: unknown;
+  switch (operation.kind) {
+    case "type": path = "type"; body = { type: operation.type }; break;
+    case "draft": path = "editor"; method = "PUT"; body = operation.document; break;
+    case "open": path = "editor/open"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId }; break;
+    case "save": path = "editor/save"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId, name: operation.name, text: operation.text }; break;
+  }
+  const response = await request(`/api/workspaces/${encodeURIComponent(id)}/${path}`, { method, body: JSON.stringify(body) });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(typeof error?.detail === "string" ? error.detail : `Operation failed (${response.status})`);
+  }
+  const graph = normalizeGraph(await response.json());
+  if (!graph) throw new Error("Invalid workspace response");
+  return graph;
 }

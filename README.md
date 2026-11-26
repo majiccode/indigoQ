@@ -59,6 +59,25 @@ moon run backend:format      # ruff format
 | Zoom                      | `⌘`/`Ctrl` + scroll, `+` / `-`, `0` to fit     |
 | Cancel current gesture    | `Escape`                                       |
 
+## Workspace types and connections
+
+Blank workspaces offer a **Choose workspace type** toolbar. Types register their
+React component and input/output capabilities in `workspaceTypes.ts`. A type is
+immutable once assigned. Dropping files onto a blank workspace selects FileWorkspace.
+
+- **FileWorkspace** collects files and exposes a `files` input/output.
+- **TextEditor** is a syntax-colored editor with undo/redo, inline numeric knobs,
+  and selection-driven curve/wave visualizations. Select a number to adjust it.
+  **Example** inserts a sample document; visualizations do not execute code.
+- Wire **FileWorkspace → TextEditor** to expose files under **File → Open**.
+- Wire **TextEditor → FileWorkspace** to expose a **File → Save** destination.
+  Both directions can coexist; overwrite requires explicitly choosing a file.
+- Editor drafts are saved independently of files. Open/Save require the API and
+  validate directed connections server-side. TextEditor opens UTF-8 text files.
+- The workspace toolbar's fullscreen button opens `/workspace?id=…`; double-click
+  the workspace toolbar to expand while leaving editor double-click text selection intact.
+- File drops remain available on graph previews below the interaction zoom threshold.
+
 ## Persistence
 
 The graph is stored in `localStorage` immediately and debounced (~550 ms) to

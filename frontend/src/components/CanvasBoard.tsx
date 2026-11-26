@@ -1183,6 +1183,31 @@ export default function CanvasBoard({
             workspace={workspace}
             graphRef={graphRef}
             viewportRef={viewportRef}
+            onDrop={async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              const files = Array.from(event.dataTransfer.files);
+              if (!files.length) return;
+              if (workspace.type !== null && workspace.type !== "content-source") {
+                setUploadError("This workspace does not accept file drops");
+                return;
+              }
+              try {
+                if (saveTimerRef.current !== null) {
+                  window.clearTimeout(saveTimerRef.current);
+                  saveTimerRef.current = null;
+                }
+                await saveGraph(graphRef.current);
+                const snapshot = await uploadContents(workspace.id, files);
+                graphRef.current = snapshot;
+                sceneRevRef.current += 1;
+                setGraph(snapshot);
+                writeLocalGraph(snapshot);
+                setUploadError(null);
+              } catch (reason) {
+                setUploadError(reason instanceof Error ? reason.message : "Unable to import files");
+              }
+            }}
             onPointerDown={(event) => {
               selectWorkspace(workspace.id);
               // Preserve canvas panning over child components.
@@ -1201,6 +1226,28 @@ export default function CanvasBoard({
           >
             <WorkspaceContent
               workspace={workspace}
+              onExpand={() => {
+                writeLocalViewport(viewportRef.current);
+                router.push(`/workspace?id=${encodeURIComponent(workspace.id)}`);
+              }}
+              graph={graph}
+              onBeforeOperation={async () => {
+                if (saveTimerRef.current !== null) {
+                  window.clearTimeout(saveTimerRef.current);
+                  saveTimerRef.current = null;
+                }
+                await saveGraph(graphRef.current);
+              }}
+              onGraphChange={(snapshot) => {
+                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => {
+                  const remote = snapshot.workspaces.find((next) => next.id === item.id);
+                  return remote ? { ...item, type: remote.type, contents: remote.contents, editor: remote.editor } : item;
+                }) };
+                graphRef.current = updated;
+                sceneRevRef.current += 1;
+                setGraph(updated);
+                writeLocalGraph(updated);
+              }}
               onUpload={async (id, files) => {
                 if (saveTimerRef.current !== null) {
                   window.clearTimeout(saveTimerRef.current);
@@ -1213,7 +1260,7 @@ export default function CanvasBoard({
                 return next;
               }}
               onWorkspaceChange={(next) => {
-                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => item.id === next.id ? { ...item, type: next.type, contents: next.contents } : item) };
+                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => item.id === next.id ? { ...item, type: next.type, contents: next.contents, editor: next.editor } : item) };
                 graphRef.current = updated;
                 sceneRevRef.current += 1;
                 setGraph(updated);

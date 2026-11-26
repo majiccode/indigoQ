@@ -30,6 +30,14 @@ export interface Workspace extends Rect {
   name: string;
   type: string | null;
   contents: ContentEntry[];
+  editor?: EditorDocument | null;
+}
+
+export interface EditorDocument {
+  text: string;
+  name: string;
+  sourceWorkspaceId: string | null;
+  sourceFileId: string | null;
 }
 
 export interface Wire {

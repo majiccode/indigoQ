@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -43,6 +41,30 @@ class Workspace(ApiModel):
     height: float = Field(ge=60, le=20_000)
     type: str | None = Field(default=None, max_length=80)
     contents: list[ContentEntry] = Field(default_factory=list, max_length=1000)
+    editor: EditorDocument | None = None
+
+
+class EditorDocument(ApiModel):
+    text: str = Field(default="", max_length=5_000_000)
+    name: str = Field(default="untitled.txt", min_length=1, max_length=255)
+    sourceWorkspaceId: str | None = None
+    sourceFileId: str | None = None
+
+
+class WorkspaceTypeRequest(ApiModel):
+    type: Literal["content-source", "text-editor"]
+
+
+class OpenDocumentRequest(ApiModel):
+    workspaceId: str
+    fileId: str
+
+
+class SaveDocumentRequest(ApiModel):
+    workspaceId: str
+    name: str = Field(min_length=1, max_length=255)
+    text: str = Field(max_length=5_000_000)
+    fileId: str | None = None
 
 
 class Wire(ApiModel):

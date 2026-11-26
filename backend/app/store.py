@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import threading
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -17,7 +18,7 @@ class GraphStore:
 
     def __init__(self, path: Path) -> None:
         self._path = path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     @property
     def path(self) -> Path:
@@ -40,6 +41,7 @@ class GraphStore:
         return GraphSnapshot(**graph.model_dump(), updatedAt=updated_at)
 
     def save(self, graph: Graph) -> GraphSnapshot:
+        graph = Graph(workspaces=graph.workspaces, wires=graph.wires)
         updated_at = datetime.now(UTC).isoformat(timespec="seconds")
         snapshot = GraphSnapshot(**graph.model_dump(), updatedAt=updated_at)
         payload = {"graph": graph.model_dump(), "updatedAt": updated_at}
@@ -60,6 +62,16 @@ class GraphStore:
                     os.unlink(temporary)
 
         return snapshot
+
+    def update(self, operation: Callable[[Graph], None]) -> GraphSnapshot:
+        """Apply a workspace operation atomically against the latest graph."""
+        with self._lock:
+            snapshot = self.load()
+            graph = (
+                Graph(workspaces=snapshot.workspaces, wires=snapshot.wires) if snapshot else Graph()
+            )
+            operation(graph)
+            return self.save(graph)
 
     def clear(self) -> None:
         with self._lock:

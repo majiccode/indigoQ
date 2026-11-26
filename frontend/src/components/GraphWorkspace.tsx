@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode, type RefObject, type PointerEventHandler } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject, type PointerEventHandler, type DragEventHandler } from "react";
 import { HEADER_HEIGHT, worldToScreen } from "@/lib/geometry";
 import type { Graph, Viewport, Workspace } from "@/lib/types";
 
 // Below this scale, render the same live React tree as a read-only preview.
-const INTERACTION_SCALE = 0.6;
+const INTERACTION_SCALE = 0.35;
 
-export default function GraphWorkspace({ workspace, graphRef, viewportRef, onOpen, onPointerDown, children }: {
+export default function GraphWorkspace({ workspace, graphRef, viewportRef, onOpen, onPointerDown, onDrop, children }: {
   workspace: Workspace;
   graphRef: RefObject<Graph>;
   viewportRef: RefObject<Viewport>;
   onOpen: () => void;
   onPointerDown: PointerEventHandler<HTMLDivElement>;
+  onDrop: DragEventHandler<HTMLDivElement>;
   children: ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,7 +47,9 @@ export default function GraphWorkspace({ workspace, graphRef, viewportRef, onOpe
     <div ref={containerRef} className="graph-workspace-content" data-workspace-id={workspace.id}
       data-detail={interactive ? "interactive" : "preview"}
       style={{ width: workspace.width, height: workspace.height - HEADER_HEIGHT }}
-      onPointerDown={onPointerDown} onDoubleClick={onOpen}>
+      onPointerDown={onPointerDown} onDoubleClick={onOpen}
+      onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+      onDrop={onDrop}>
       <div className="workspace-live-surface" inert={!interactive}>{children}</div>
       {!interactive && (
         <button type="button" className="workspace-preview-cover" aria-label={`Open ${workspace.name}`}
