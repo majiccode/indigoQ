@@ -17,6 +17,7 @@ import ImageWorkspace from "./ImageWorkspace";
 import ModelBenchWorkspace from "./ModelBenchWorkspace";
 import KnowledgeWorkspace from "./KnowledgeWorkspace";
 import DashboardWorkspace from "./DashboardWorkspace";
+import ChartWorkspace from "./ChartWorkspace";
 import { STUDIO_NAMES } from "@/lib/studio";
 import { registerWorkspaceType } from "@/lib/workspaceRegistry";
 
@@ -49,6 +50,7 @@ registerWorkspaceType({ type: "image-studio", name: STUDIO_NAMES["image-studio"]
 registerWorkspaceType({ type: "model-bench", name: STUDIO_NAMES["model-bench"], description: "Compare local models and temperatures, then rate results.", inputs: ["text", "table"], outputs: ["text", "table"], component: ModelBenchWorkspace });
 registerWorkspaceType({ type: "knowledge", name: STUDIO_NAMES.knowledge, description: "Retrieve relevant document passages with source references.", inputs: ["files", "text"], outputs: ["text"], component: KnowledgeWorkspace });
 registerWorkspaceType({ type: "dashboard", name: STUDIO_NAMES.dashboard, description: "Compose connected charts, tables, documents, and media.", inputs: ["text", "table", "files", "controls"], outputs: [], component: DashboardWorkspace });
+registerWorkspaceType({ type: "chart-studio", name: STUDIO_NAMES["chart-studio"], description: "Explore tables with charts, brush rows, and export images.", inputs: ["table"], outputs: ["table", "text", "files"], component: ChartWorkspace });
 
 registerWorkspaceType({
   type: "data-table", name: "Data Table", description: "Explore, edit, and transform CSV and JSON data.",

@@ -8,6 +8,7 @@ import { downloadText } from "@/lib/workspaceData";
 const EXAMPLES = [
   { file: "oscillator-lab", name: "Oscillator Lab", description: "Editor equations → live knobs and plots → sampled table." },
   { file: "measurements", name: "Measured vs. Model", description: "CSV files → editable table → scatter overlay on a mathematical model." },
+  { file: "chart-studio", name: "Chart Studio", description: "Weekly sales → interactive charts → selected rows and PNG exports." },
   { file: "local-ai", name: "Local AI Studio", description: "Ollama → editable equations → Math Lab, plus JSON extraction → Data Table." },
   { file: "interactive-studio", name: "Interactive Studio", description: "Shared controls, simulations, timeline, HTML playground, audio, and dashboard." },
   { file: "data-workbench", name: "Data Workbench", description: "HTTP, JSON transforms, SQL aggregation, Markdown reports, and comparisons." },

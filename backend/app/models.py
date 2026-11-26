@@ -22,6 +22,7 @@ StudioKind = Literal[
     "knowledge",
     "timeline",
     "dashboard",
+    "chart-studio",
 ]
 
 

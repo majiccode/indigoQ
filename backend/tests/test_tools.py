@@ -22,6 +22,16 @@ def client(tmp_path: Path) -> TestClient:
         ("math-lab", {"expressions": "a=2\ny=a*x", "bounds": [-10, 10, -5, 5]}),
         ("data-table", {"columns": ["x", "y"], "rows": [["1", "2"]]}),
         ("ollama", {"model": "local", "prompt": "hello", "system": "", "temperature": 0.7}),
+        (
+            "chart-studio",
+            {
+                "settings": {"chart": "scatter", "x": "week", "y": "sales"},
+                "table": {
+                    "kind": "data-table", "columns": ["week", "sales"], "rows": [["1", "12"]]
+                },
+                "output": "week,sales\n1,12",
+            },
+        ),
     ],
 )
 def test_tool_persistence_and_type_matching(client: TestClient, kind: str, state: dict) -> None:

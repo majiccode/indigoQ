@@ -12,8 +12,10 @@ import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRe
 import type { EditorDocument, Workspace } from "@/lib/types";
 import { workspaceText } from "@/lib/workspaceData";
 import { registerWorkspaceFlush } from "@/lib/workspaceFlush";
+import { detectSelectionTokens, type SelectionToken } from "@/lib/selectionEditors";
+import SelectionEditors from "./SelectionEditors";
 
-const EXAMPLE = `// A living document. Select a number to shape it.\n\nconst signal = {\n  frequency: 220,\n  amplitude: 0.65,\n  phase: 0.25,\n};\n\n// Tune the curve with the controls below.\nconst envelope = {\n  attack: 0.12,\n  decay: 0.45,\n  sustain: 0.7,\n  release: 1.2,\n};\n\nconst points = [0.2, 0.85, 0.4, 0.65, 0.3];\n\n// Wire a FileWorkspace → here to open a file.\n// Wire here → a FileWorkspace to save your document.\n`;
+const EXAMPLE = `// A living document. Select a value to shape it.\n\nconst signal = {\n  frequency: 220,\n  amplitude: 0.65,\n  phase: 0.25,\n};\n\n// Tune the curve with the controls below.\nconst envelope = {\n  attack: 0.12,\n  decay: 0.45,\n  sustain: 0.7,\n  release: 1.2,\n};\n\nconst points = [0.2, 0.85, 0.4, 0.65, 0.3];\n\n// Select these values for colour wheels, toggles, dials and XY pads.\nconst accent = "#c8a4ff";\nconst overlay = "rgba(200, 164, 255, 0.8)";\nconst tint = "hsv(264, 36%, 100%)";\nconst enabled = true;\nconst spacing = "24px";\nconst rotation = "45deg";\nconst position = { x: 10, y: 20 };\nconst anchor = [0.2, 0.8];\n\n// Wire a FileWorkspace → here to open a file.\n// Wire here → a FileWorkspace to save your document.\n`;
 
 const highlight = HighlightStyle.define([
   { tag: tags.comment, color: "#788575", fontStyle: "italic" },
@@ -37,65 +39,24 @@ const theme = EditorView.theme({
   ".cm-cursor": { borderLeftColor: "#eadcff" },
 }, { dark: true });
 
-interface NumberToken { from: number; to: number; value: number; label: string; raw: string }
-function numbersOnLine(text: string, from: number): NumberToken[] {
-  return Array.from(text.matchAll(/(?<![\w.])-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi), (match, index) => {
-    const before = text.slice(0, match.index);
-    const name = before.match(/([a-zA-Z_]\w*)\s*[:=]\s*$/)?.[1];
-    return { from: from + match.index, to: from + match.index + match[0].length,
-      value: Number(match[0]), label: name ?? `value ${index + 1}`, raw: match[0] };
-  });
-}
-
-function NumberKnob({ token, onChange }: { token: NumberToken; onChange: (value: number) => void }) {
-  const [{ min, max }] = useState(() => {
-    const radius = Math.max(Math.abs(token.value) * 2, 1);
-    return { min: token.value < 0 ? -radius : 0, max: radius };
-  });
-  const percent = (token.value - min) / (max - min);
-  return (
-    <label className="editor-knob">
-      <span className="editor-knob-face" style={{ background: `conic-gradient(from 220deg, #b997ef ${percent * 280}deg, #3c4938 0deg 280deg, transparent 0)` }}>
-        <span><i>{token.label}</i><strong>{Number(token.value.toFixed(4))}</strong></span>
-        <input aria-label={`Adjust ${token.label}`} type="range" min={min} max={max}
-          step={Math.abs(token.value) >= 10 && !token.raw.includes(".") ? 1 : 0.001}
-          value={token.value} onChange={(event) => onChange(Number(event.target.value))} />
-      </span>
-      <small>{token.label}</small>
-    </label>
-  );
-}
-
-function SelectionGraph({ values, mode }: { values: number[]; mode: string }) {
-  const safe = values.length ? values : [0.2, 0.6, 0.3];
-  const max = Math.max(1, ...safe.map(Math.abs));
-  const points = mode === "wave"
-    ? Array.from({ length: 120 }, (_, i) => `${i * 3},${65 - Math.sin(i / 12 * Math.max(0.2, Math.abs(safe[0]) % 10)) * 40 * Math.min(1, Math.abs(safe[1] ?? 0.65))}`).join(" ")
-    : safe.map((value, i) => `${12 + i * (336 / Math.max(1, safe.length - 1))},${110 - (value / max) * 90}`).join(" ");
-  return <svg className="editor-selection-graph" viewBox="0 0 360 130" role="img" aria-label="Visualization of selected numeric values">
-    {[30, 65, 100].map((y) => <path key={y} d={`M0 ${y}H360`} stroke="#3b4836" strokeWidth="0.7" />)}
-    <polyline points={points} fill="none" stroke="#b7d595" strokeWidth="2" />
-    {mode !== "wave" && points.split(" ").map((point, i) => <circle key={i} cx={point.split(",")[0]} cy={point.split(",")[1]} r="3" fill="#d5b9fc" />)}
-  </svg>;
-}
-
 const instrumentRoots = new WeakMap<HTMLElement, Root>();
 
 class InlineInstruments extends WidgetType {
-  constructor(readonly tokens: NumberToken[]) { super(); }
+  constructor(readonly tokens: SelectionToken[]) { super(); }
   eq(other: InlineInstruments) {
     return JSON.stringify(this.tokens) === JSON.stringify(other.tokens);
   }
   render(container: HTMLElement, view: EditorView) {
     let root = instrumentRoots.get(container);
     if (!root) { root = createRoot(container); instrumentRoots.set(container, root); }
-    root.render(<div className="editor-instrument-row"><div className="editor-knobs">
-      {this.tokens.slice(0, 6).map((token) => <NumberKnob key={token.from} token={token} onChange={(value) => {
-        const replacement = String(Number(value.toFixed(4)));
-        view.dispatch({ changes: { from: token.from, to: token.to, insert: replacement },
-          selection: { anchor: token.from, head: token.from + replacement.length } });
-      }} />)}
-    </div><SelectionGraph values={this.tokens.map((token) => token.value)} mode="curve" /></div>);
+    root.render(<SelectionEditors tokens={this.tokens} onChange={(token, replacement) => {
+        // Read the current document rather than a stale React render during dragging.
+        const current = detectSelectionTokens(view.state.doc.toString(), 0, view.state.selection.main.from, view.state.selection.main.to)
+          .find((item) => item.from === token.from && item.kind === token.kind);
+        if (!current) return;
+        view.dispatch({ changes: { from: current.from, to: current.to, insert: replacement },
+          selection: { anchor: token.from, head: token.from + replacement.length }, userEvent: "input.selection-editor" });
+    }} />);
   }
   toDOM(view: EditorView) {
     const container = document.createElement("div");
@@ -117,7 +78,7 @@ function inlineDecorations(state: EditorState): DecorationSet {
   const line = state.doc.lineAt(selection.head);
   // Reveal controls beside the edited text only after a deliberate selection.
   if (selection.empty) return Decoration.none;
-  const tokens = numbersOnLine(line.text, line.from).filter((token) => token.to > selection.from && token.from < selection.to);
+  const tokens = detectSelectionTokens(state.doc.toString(), 0, selection.from, selection.to);
   return tokens.length ? Decoration.set([Decoration.widget({ widget: new InlineInstruments(tokens), block: true, side: 1 }).range(line.to)]) : Decoration.none;
 }
 

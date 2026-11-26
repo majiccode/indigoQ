@@ -5,7 +5,7 @@ export const STUDIO_NAMES: Record<StudioKind, string> = {
   "audio-lab": "Audio / Signal Lab", "http-client": "HTTP / API Client", transform: "Transform",
   "document-preview": "Document Preview", diff: "Diff / Compare", "image-studio": "Image Studio",
   sql: "SQL Explorer", "model-bench": "Model Bench", knowledge: "Knowledge Library",
-  timeline: "Timeline / Sequencer", dashboard: "Dashboard",
+  timeline: "Timeline / Sequencer", dashboard: "Dashboard", "chart-studio": "Chart Studio",
 };
 export const CONTROL_EXAMPLE = JSON.stringify([
   { name: "amplitude", type: "number", value: 2, min: 0, max: 5, step: 0.01 },

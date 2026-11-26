@@ -1,0 +1,37 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      {
+        "id": "chart-notes", "name": "Start here — Chart Studio", "type": "text-editor",
+        "x": 0, "y": 0, "width": 420, "height": 480, "contents": [],
+        "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "CHART STUDIO — WEEKLY SALES\n\n1. Open Weekly Sales Chart fullscreen.\n2. Hover points to inspect values. Compare North and South.\n3. Drag a rectangle around points, then click Publish selected rows.\n4. In Selected Rows, choose Weekly Sales Chart — table from Import connected input.\n5. Switch between line, scatter, bar, and histogram. For histogram, set X to sales.\n6. Zoom in/out, or Shift-drag to pan; Reset view restores all data.\n7. Export PNG downloads the chart and saves chart.png into Chart Exports.\n\nTry editing a sales cell in Weekly Sales; the chart follows saved table changes.\n" }
+      },
+      {
+        "id": "chart-data", "name": "Weekly Sales", "type": "data-table",
+        "x": 500, "y": 0, "width": 460, "height": 520, "contents": [],
+        "tool": { "kind": "data-table", "columns": ["week", "sales", "region"], "rows": [["1", "12", "North"], ["2", "18", "North"], ["3", "16", "North"], ["4", "27", "North"], ["5", "24", "North"], ["6", "34", "North"], ["1", "9", "South"], ["2", "14", "South"], ["3", "20", "South"], ["4", "18", "South"], ["5", "29", "South"], ["6", "31", "South"]] }
+      },
+      {
+        "id": "chart-view", "name": "Weekly Sales Chart", "type": "chart-studio",
+        "x": 1060, "y": 0, "width": 800, "height": 700, "contents": [],
+        "tool": { "kind": "chart-studio", "settings": { "source": "chart-data", "chart": "line", "x": "week", "y": "sales", "series": "region", "title": "Weekly sales by region" }, "text": "", "output": "", "table": null, "files": [] }
+      },
+      {
+        "id": "chart-selection", "name": "Selected Rows", "type": "data-table",
+        "x": 1960, "y": 0, "width": 460, "height": 400, "contents": [],
+        "tool": { "kind": "data-table", "columns": ["week", "sales", "region"], "rows": [] }
+      },
+      {
+        "id": "chart-exports", "name": "Chart Exports", "type": "content-source",
+        "x": 1960, "y": 490, "width": 460, "height": 340, "contents": []
+      }
+    ],
+    "wires": [
+      { "id": "chart-data-view", "source": "chart-data", "sourcePort": { "side": "right", "t": 0.5 }, "target": "chart-view", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "chart-view-selection", "source": "chart-view", "sourcePort": { "side": "right", "t": 0.3 }, "target": "chart-selection", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "chart-view-exports", "source": "chart-view", "sourcePort": { "side": "right", "t": 0.8 }, "target": "chart-exports", "targetPort": { "side": "left", "t": 0.5 } }
+    ]
+  }
+}

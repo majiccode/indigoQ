@@ -18,6 +18,48 @@ const { parseControls, savedControls, selectPath, searchPassages } = load("studi
 const { simulate } = load("simulation");
 const { diffLines } = load("textDiff");
 const { workspaceResizeAt, resizeCursor } = load("geometry");
+const { detectSelectionTokens, parseColour, formatColour, replaceTokenValues } = load("selectionEditors");
+const { chartPoints, chartBounds, selectedChartRows } = load("chart");
+
+test("charts omit invalid cells, preserve series, brush original rows and bin endpoints", () => {
+  const table = { kind: "data-table", columns: ["x", "y", "group"], rows: [["1", "2", "A"], ["2", "4", "B"], ["", "5", "A"], ["3", "", "B"], ["4", "-2", "B"]] };
+  const options = { kind: "scatter", x: "x", y: "y", series: "group", bins: 2, logX: false, logY: false };
+  const points = chartPoints(table, options);
+  assert.deepEqual(points.map((point) => point.rows[0]), [0, 1, 4]);
+  assert.deepEqual(selectedChartRows(points, [2.5, 0, 5, 0]), [0, 1]);
+  assert.deepEqual(selectedChartRows(points, [10, 20, 10, 20]), []);
+  assert.equal(chartPoints(table, { ...options, logY: true }).length, 2);
+  const bins = chartPoints(table, { ...options, kind: "histogram" });
+  assert.equal(bins.reduce((sum, bin) => sum + bin.y, 0), 4);
+  assert.deepEqual(bins.flatMap((bin) => bin.rows).sort(), [0, 1, 3, 4]);
+  assert.deepEqual(selectedChartRows(bins, [-100, 100, -100, 100]), [0, 1, 3, 4]);
+  assert.ok(chartBounds(points, "scatter").every(Number.isFinite));
+  const categorical = { ...table, rows: [["Jan", "2", "A"], ["Feb", "3", "A"]] };
+  assert.deepEqual(chartPoints(categorical, { ...options, kind: "bar" }).map((point) => point.label), ["Jan", "Feb"]);
+});
+
+test("selection editors detect whole structured literals without nested number knobs", () => {
+  const text = 'const colour = "rgba(200, 164, 255, 0.8)"; const enabled = true; const angle = "45deg"; const size = "24px"; const xy = { x: 10, y: -20 }; const points = [0.2, 0.8, 0.4];';
+  const tokens = detectSelectionTokens(text, 0, 0, text.length);
+  assert.deepEqual(tokens.map((token) => token.kind), ["colour", "boolean", "angle", "unit", "xy", "array"]);
+  assert.equal(tokens[0].label, "colour");
+  assert.equal(replaceTokenValues(tokens[2], [90]), "90deg");
+  assert.equal(replaceTokenValues(tokens[4], [30, 40]), "{ x: 30, y: 40 }");
+  assert.deepEqual(detectSelectionTokens("[1, 2]", 0, 1, 2).map((token) => token.kind), ["xy"]);
+  assert.deepEqual(detectSelectionTokens(text, 0, 0, 0), []);
+});
+
+test("colour notation roundtrips hex, alpha, percentages and hue units", () => {
+  for (const raw of ["#abc", "#abcd", "#AABBCC", "#aabbcc80", "rgba(200, 164, 255, 0.8)", "rgb(100% 0% 0% / 50%)", "hsl(240 100% 50%)", "hsla(120, 50%, 40%, 0.7)", "hsv(120, 50%, 80%)", "hsv(120, 0.5, 0.8)", "hsb(120, 50%, 80%)", "hsl(0.5turn 100% 50%)"]) {
+    const colour = parseColour(raw);
+    assert.ok(colour, raw);
+    const again = parseColour(formatColour(raw, colour));
+    for (const key of ["h", "s", "v", "a"]) assert.ok(Math.abs(colour[key] - again[key]) < 0.02, `${raw}: ${key}`);
+  }
+  assert.equal(parseColour("#nope"), null);
+  assert.equal(parseColour("rgb(1, 2)"), null);
+  assert.equal(formatColour("#ff0000", { h: 0, s: 1, v: 1, a: 0.5 }), "#ff000080");
+});
 
 test("resize corners remain reachable outside borders and across zoom levels", () => {
   const workspace = { id: "back", x: 100, y: 100, width: 300, height: 200 };
@@ -80,7 +122,7 @@ test("Math Lab publishes sampled tables using connected equations and knob overr
 });
 
 test("graph files roundtrip complete examples and accept raw API/store JSON", () => {
-  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media"]) {
+  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio"]) {
     const text = fs.readFileSync(new URL(`../public/examples/${name}.json`, import.meta.url), "utf8");
     const graph = parseGraphFile(text);
     assert.deepEqual(parseGraphFile(serializeGraph(graph)), graph);

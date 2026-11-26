@@ -91,6 +91,11 @@ immutable once assigned. Dropping files onto a blank workspace selects FileWorks
 - **TextEditor** is a syntax-colored editor with undo/redo, inline numeric knobs,
   and selection-driven curve/wave visualizations. Select a number to adjust it.
   **Example** inserts a sample document; visualizations do not execute code.
+  Select colours (hex, RGB, HSL, HSV/HSB) for a colour wheel and alpha controls,
+  booleans for a toggle, unit-bearing numbers for a unit-preserving knob, and
+  angles for a circular dial. Two-number arrays or `{ x, y }` literals open an XY
+  pad; longer numeric arrays open a draggable curve with individual value controls.
+  All visual edits participate in the editor's undo/redo history.
 - Wire **FileWorkspace → TextEditor** to expose files under **File → Open**.
 - Wire **TextEditor → FileWorkspace** to expose a **File → Save** destination.
   Both directions can coexist; overwrite requires explicitly choosing a file.
@@ -150,7 +155,7 @@ This explicitly replaces the current draft with a snapshot of the chosen output.
 
 ## Studio workspace collection
 
-Fourteen additional mini-apps are available from the workspace type picker:
+Fifteen additional mini-apps are available from the workspace type picker:
 
 | Workspace | Working features and connections |
 |---|---|
@@ -168,6 +173,11 @@ Fourteen additional mini-apps are available from the workspace type picker:
 | **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
 | **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
 | **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
+| **Chart Studio** | Connected tables as line, scatter, grouped bar, or histogram charts; X/Y/series mapping, hover values, log axes, reference line, zoom/pan, and brush selection. Publish all or selected rows as a table snapshot; export SVG or PNG, with PNG saved to outgoing FileWorkspaces. |
+
+The **Chart Studio** example in the Examples menu uses a small weekly-sales table
+with two regions. Brush points and publish them, import the result in Selected
+Rows, or export a PNG into Chart Exports.
 
 ### Live controls and saved outputs
 
