@@ -1,0 +1,50 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      {
+        "id": "ai-notes", "name": "Start here — Local AI Studio", "type": "text-editor",
+        "x": 0, "y": 0, "width": 470, "height": 580, "contents": [],
+        "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "LOCAL AI STUDIO\n\nBoth AI workspaces include sample completed outputs so you can explore before running a model.\n\nEQUATIONS\n1. Open Equation Assistant, choose an installed model, and Run.\n2. Open Review Equations and choose Equation Assistant from Import text.\n3. Edit the equations; the connected plot follows saved changes.\n4. In AI Plot, choose Equation Assistant as Equations from to bypass the editor.\n\nSTRUCTURED DATA\n1. Open Extract Measurements and Run. Experiment Notes is selected as context.\n2. Inspect the exact Context snapshot from last run.\n3. Open Extracted Data and import Extract Measurements — text.\n4. To analyze the table instead, connect Extracted Data to a new Ollama workspace and select it as context.\n\nGeneration is always manual. No model is hard-coded into these examples. Choose one installed on your machine." }
+      },
+      {
+        "id": "ai-equations", "name": "Equation Assistant", "type": "ollama",
+        "x": 570, "y": 0, "width": 530, "height": 650, "contents": [],
+        "tool": { "kind": "ollama", "model": "", "prompt": "Return ONLY a damped oscillator as plain mathematical expressions, one per line. Define amplitude = 2, frequency = 1.5, damping = 0.15, then y = amplitude * exp(-damping * abs(x)) * sin(frequency * x). You may add a second y equation. No prose, Markdown, or LaTeX. Use * for multiplication and ^ for powers. Supported functions: sin, cos, tan, exp, sqrt, abs, log.", "system": "You generate equations for an interactive plotting workspace. Follow the requested expression format exactly.", "temperature": 0.3, "jsonOutput": false, "output": "amplitude = 2\nfrequency = 1.5\ndamping = 0.15\ny = amplitude * exp(-damping * abs(x)) * sin(frequency * x)", "context": "", "sourceIds": [] }
+      },
+      {
+        "id": "ai-editor", "name": "Review Equations", "type": "text-editor",
+        "x": 1200, "y": 0, "width": 500, "height": 500, "contents": [],
+        "editor": { "name": "generated-equations.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "amplitude = 2\nfrequency = 1.5\ndamping = 0.15\ny = amplitude * exp(-damping * abs(x)) * sin(frequency * x)" }
+      },
+      {
+        "id": "ai-math", "name": "AI Plot", "type": "math-lab",
+        "x": 1800, "y": 0, "width": 680, "height": 650, "contents": [],
+        "tool": { "kind": "math-lab", "expressions": "y = sin(x)", "sourceId": "ai-editor", "parameters": {}, "bounds": [-10, 10, -3, 3], "xColumn": "", "yColumn": "" }
+      },
+      {
+        "id": "ai-context", "name": "Experiment Notes", "type": "text-editor",
+        "x": 570, "y": 800, "width": 480, "height": 420, "contents": [],
+        "editor": { "name": "experiment.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "Measurements from our experiment:\nAt x=0, y=0.08.\nAt x=1, y=0.88.\nAt x=2, y=0.86.\nAt x=3, y=0.10.\nAt x=4, y=-0.80.\nAt x=5, y=-1.01.\n\nThe values are noisy observations of a sine wave." }
+      },
+      {
+        "id": "ai-extract", "name": "Extract Measurements", "type": "ollama",
+        "x": 1200, "y": 800, "width": 530, "height": 650, "contents": [],
+        "tool": { "kind": "ollama", "model": "", "prompt": "Extract the measurements in the context. Return ONLY a JSON array of objects with numeric x and y fields. No prose or Markdown.", "system": "You extract structured data. Respond with valid JSON matching the requested structure.", "temperature": 0, "jsonOutput": true, "output": "[{\"x\":0,\"y\":0.08},{\"x\":1,\"y\":0.88},{\"x\":2,\"y\":0.86},{\"x\":3,\"y\":0.10},{\"x\":4,\"y\":-0.80},{\"x\":5,\"y\":-1.01}]", "context": "", "sourceIds": ["ai-context"] }
+      },
+      {
+        "id": "ai-table", "name": "Extracted Data", "type": "data-table",
+        "x": 1830, "y": 800, "width": 550, "height": 550, "contents": [],
+        "tool": { "kind": "data-table", "columns": ["x", "y"], "rows": [["0", "0.08"], ["1", "0.88"], ["2", "0.86"], ["3", "0.10"], ["4", "-0.80"], ["5", "-1.01"]] }
+      }
+    ],
+    "wires": [
+      { "id": "ai-model-editor", "source": "ai-equations", "sourcePort": { "side": "right", "t": 0.3 }, "target": "ai-editor", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "ai-editor-math", "source": "ai-editor", "sourcePort": { "side": "right", "t": 0.5 }, "target": "ai-math", "targetPort": { "side": "left", "t": 0.3 } },
+      { "id": "ai-model-math", "source": "ai-equations", "sourcePort": { "side": "bottom", "t": 0.8 }, "target": "ai-math", "targetPort": { "side": "bottom", "t": 0.6 } },
+      { "id": "ai-context-extract", "source": "ai-context", "sourcePort": { "side": "right", "t": 0.5 }, "target": "ai-extract", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "ai-extract-table", "source": "ai-extract", "sourcePort": { "side": "right", "t": 0.5 }, "target": "ai-table", "targetPort": { "side": "left", "t": 0.4 } }
+    ]
+  }
+}

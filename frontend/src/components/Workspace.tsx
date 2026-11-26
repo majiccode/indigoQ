@@ -5,7 +5,7 @@ import { useState } from "react";
 import BlankWorkspace from "./BlankWorkspace";
 import "./workspaceTypes";
 import { getWorkspaceType, getWorkspaceTypes } from "@/lib/workspaceRegistry";
-import { uploadContents, workspaceOperation, type WorkspaceOperation } from "@/lib/graphApi";
+import { enqueueWorkspaceOperation, uploadContents, workspaceOperation, type WorkspaceOperation } from "@/lib/graphApi";
 import type { Graph, Workspace as WorkspaceModel } from "@/lib/types";
 
 interface WorkspaceProps {
@@ -24,13 +24,15 @@ export default function Workspace({ workspace, graph, onGraphChange, onWorkspace
   const [choosingType, setChoosingType] = useState(false);
   const definition = getWorkspaceType(workspace.type);
 
-  const operate = async (operation: WorkspaceOperation) => {
-    await onBeforeOperation?.();
-    const updated = await workspaceOperation(workspace.id, operation);
-    onGraphChange(updated);
-    const next = updated.workspaces.find((item) => item.id === workspace.id);
-    if (!next) throw new Error("Workspace missing from response");
-    return next;
+  const operate = (operation: WorkspaceOperation) => {
+    return enqueueWorkspaceOperation(async () => {
+      await onBeforeOperation?.();
+      const updated = await workspaceOperation(workspace.id, operation);
+      onGraphChange(updated);
+      const next = updated.workspaces.find((item) => item.id === workspace.id);
+      if (!next) throw new Error("Workspace missing from response");
+      return next;
+    });
   };
 
   const importFiles = async (files: File[]) => {

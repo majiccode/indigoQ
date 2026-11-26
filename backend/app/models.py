@@ -42,6 +42,66 @@ class Workspace(ApiModel):
     type: str | None = Field(default=None, max_length=80)
     contents: list[ContentEntry] = Field(default_factory=list, max_length=1000)
     editor: EditorDocument | None = None
+    tool: MathState | TableState | OllamaState | None = None
+
+
+class Parameter(ApiModel):
+    value: float = Field(allow_inf_nan=False)
+    min: float = Field(allow_inf_nan=False)
+    max: float = Field(allow_inf_nan=False)
+
+
+class MathState(ApiModel):
+    kind: Literal["math-lab"]
+    expressions: str = Field(max_length=100_000)
+    sourceId: str = ""
+    parameters: dict[str, Parameter] = Field(default_factory=dict, max_length=100)
+    bounds: tuple[float, float, float, float]
+    xColumn: str = ""
+    yColumn: str = ""
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> MathState:
+        import math
+
+        a, b, c, d = self.bounds
+        if not all(math.isfinite(value) for value in self.bounds) or a >= b or c >= d:
+            raise ValueError("Plot bounds must be finite and increasing")
+        if any(parameter.min >= parameter.max for parameter in self.parameters.values()):
+            raise ValueError("Parameter minimum must be below maximum")
+        return self
+
+
+class TableState(ApiModel):
+    kind: Literal["data-table"]
+    columns: list[str] = Field(max_length=100)
+    rows: list[list[str]] = Field(max_length=10_000)
+
+    @model_validator(mode="after")
+    def validate_rows(self) -> TableState:
+        if any(len(row) != len(self.columns) for row in self.rows):
+            raise ValueError("Rows must match the column count")
+        return self
+
+
+class OllamaState(ApiModel):
+    kind: Literal["ollama"]
+    model: str = Field(max_length=255)
+    prompt: str = Field(max_length=100_000)
+    system: str = Field(max_length=100_000)
+    temperature: float = Field(ge=0, le=2)
+    jsonOutput: bool = False
+    output: str = Field(default="", max_length=5_000_000)
+    context: str = Field(default="", max_length=1_000_000)
+    sourceIds: list[str] = Field(default_factory=list, max_length=500)
+
+
+class GenerateRequest(ApiModel):
+    model: str = Field(min_length=1, max_length=255)
+    prompt: str = Field(min_length=1, max_length=1_200_000)
+    system: str = Field(default="", max_length=100_000)
+    temperature: float = Field(default=0.7, ge=0, le=2)
+    jsonOutput: bool = False
 
 
 class EditorDocument(ApiModel):
@@ -52,7 +112,7 @@ class EditorDocument(ApiModel):
 
 
 class WorkspaceTypeRequest(ApiModel):
-    type: Literal["content-source", "text-editor"]
+    type: Literal["content-source", "text-editor", "math-lab", "data-table", "ollama"]
 
 
 class OpenDocumentRequest(ApiModel):

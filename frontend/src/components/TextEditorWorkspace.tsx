@@ -10,6 +10,8 @@ import { javascript } from "@codemirror/lang-javascript";
 import { tags } from "@lezer/highlight";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import type { EditorDocument, Workspace } from "@/lib/types";
+import { workspaceText } from "@/lib/workspaceData";
+import { registerWorkspaceFlush } from "@/lib/workspaceFlush";
 
 const EXAMPLE = `// A living document. Select a number to shape it.\n\nconst signal = {\n  frequency: 220,\n  amplitude: 0.65,\n  phase: 0.25,\n};\n\n// Tune the curve with the controls below.\nconst envelope = {\n  attack: 0.12,\n  decay: 0.45,\n  sustain: 0.7,\n  release: 1.2,\n};\n\nconst points = [0.2, 0.85, 0.4, 0.65, 0.3];\n\n// Wire a FileWorkspace → here to open a file.\n// Wire here → a FileWorkspace to save your document.\n`;
 
@@ -149,8 +151,16 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
   const pendingRef = useRef<Promise<unknown>>(Promise.resolve());
   const incoming = connectedWorkspaces(graph, workspace.id, "incoming", "files").filter((item) => item.type === "content-source");
   const outgoing = connectedWorkspaces(graph, workspace.id, "outgoing", "files").filter((item) => item.type === "content-source");
+  const textInputs = connectedWorkspaces(graph, workspace.id, "incoming", "text");
 
   useEffect(() => { operationRef.current = onOperation; }, [onOperation]);
+  useEffect(() => registerWorkspaceFlush(async () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current); timerRef.current = null;
+      pendingRef.current = pendingRef.current.catch(() => {}).then(() => operationRef.current({ kind: "draft", document: documentRef.current }));
+    }
+    await pendingRef.current;
+  }), []);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -247,6 +257,11 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
           </div>}
         </div>
         <span className="editor-document-name">{document.name}</span>
+        {!!textInputs.length && <select aria-label="Import connected text" value="" onChange={(event) => {
+          const source = textInputs.find((item) => item.id === event.target.value);
+          const view = viewRef.current;
+          if (source && view) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: workspaceText(source) } });
+        }}><option value="">Import text…</option>{textInputs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
         <button type="button" className="editor-example" onClick={() => viewRef.current?.dispatch({ changes: { from: 0, to: viewRef.current.state.doc.length, insert: EXAMPLE } })}>Example</button>
         <span className="editor-live-badge">● LIVE TEXT</span>
       </div>

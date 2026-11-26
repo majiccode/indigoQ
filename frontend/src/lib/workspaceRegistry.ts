@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import type { Graph, Workspace } from "./types";
 import type { WorkspaceOperation } from "./graphApi";
 
-export type WorkspaceCapability = "files" | "text";
+export type WorkspaceCapability = "files" | "text" | "table";
 
 export interface TypedWorkspaceProps {
   workspace: Workspace;

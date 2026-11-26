@@ -46,6 +46,8 @@ moon run backend:lint        # ruff check
 moon run backend:format      # ruff format
 ```
 
+Run the frontend expression/data-flow tests with `pnpm --dir frontend test`.
+
 ## Controls
 
 | Action                    | Gesture                                       |
@@ -78,7 +80,75 @@ immutable once assigned. Dropping files onto a blank workspace selects FileWorks
   the workspace toolbar to expand while leaving editor double-click text selection intact.
 - File drops remain available on graph previews below the interaction zoom threshold.
 
+### Math Lab, Data Table, and local AI
+
+Choose these types from any blank workspace. Use fullscreen for a larger editing
+surface. Their settings and completed outputs are saved with the graph.
+
+- **Math Lab** plots one expression per line, with named parameters such as
+  `amplitude = 2` and curves such as `y = amplitude * sin(x)`. Parameters get
+  live knobs with editable values and ranges. Multiple curves, visibility toggles,
+  drag-to-pan, zoom buttons, coordinate inspection, and sampled CSV export are
+  included. The expression language supports `+ - * / ^`, parentheses, `pi`, `e`,
+  and common math functions; it does not execute JavaScript. Use explicit `*`
+  for multiplication. **Equations from** selects an incoming TextEditor or Ollama
+  output and updates the plot when that source is saved.
+- **Data Table** imports CSV or JSON from a local file, pasted text, or a connected
+  workspace. JSON can be an array of objects or an array of rows (first row is the
+  header). Edit cells and headers, add/delete rows, add columns, sort/filter,
+  inspect numeric summaries, or add a computed column using a math expression.
+  CSV and JSON exports include the whole table. Imports are explicit snapshots;
+  sorting and filtering are view-only. Tables support up to 100 columns and
+  10,000 rows, displaying the first 500 matching rows.
+- **Ollama** lists installed local models and streams responses through the backend.
+  Choose a model, enter instructions and a prompt, select incoming context sources,
+  and press **Run**. Temperature, JSON output, presets, cancellation, output
+  download/copy, and the last context snapshot are available. Connected files must
+  be UTF-8 text. Generation is manual; changes to inputs never launch model calls.
+
+Ollama defaults to `http://127.0.0.1:11434`. Start it before refreshing models.
+To use another server, set `OLLAMA_BASE_URL` in the backend environment.
+
+Try these connections:
+
+1. **Ollama → Math Lab:** choose the **equations** preset, Run, then select that
+   Ollama workspace under Math Lab's **Equations from**.
+2. **Ollama → TextEditor → Math Lab:** import the generated text into the editor,
+   then select the editor as the equation source. Adjusting editor numbers updates
+   the plot after the draft is saved.
+3. **FileWorkspace → Data Table → Math Lab:** import a connected CSV/JSON file;
+   Math Lab overlays the first connected table as scatter points with X/Y selectors.
+4. **Math Lab → Data Table:** import **sampled curves** to capture 201 samples across
+   the current X range, including current parameter-knob values.
+5. **Data Table → Ollama:** select the table as context and use **summarize**, or
+   **Ollama → Data Table:** use **extract** and import its completed JSON response.
+
+The TextEditor toolbar also offers **Import text…** for incoming text connections.
+This explicitly replaces the current draft with a snapshot of the chosen output.
+
 ## Persistence
+
+### Save, load, and examples
+
+The app header provides **Save JSON**, **Load JSON**, and **Examples**:
+
+- **Save JSON** downloads the complete graph, including connections, embedded files,
+  editor drafts, tool settings, table data, and completed AI outputs. Pending editor
+  and knob changes are flushed before export. The file uses a versioned JSON envelope:
+  `{ "format": "indigoq", "version": 1, "graph": { "workspaces": [], "wires": [] } }`.
+- **Load JSON** replaces the current canvas and fits it into view. The whole graph
+  is validated before replacement; invalid files leave the existing graph intact.
+  Raw graph/API JSON and the backend's `{ "graph": …, "updatedAt": … }` files also
+  load. Loading requires the backend API. Save your current graph before switching.
+- **Examples** loads a prewired graph or downloads its JSON. Each example includes
+  a **Start here** editor with instructions:
+  - **Oscillator Lab:** equation editor → live parameter knobs and plots → sampled table.
+  - **Measured vs. Model:** embedded CSV → editable measurements → model/scatter comparison.
+  - **Local AI Studio:** Ollama → equation editor → plot, and context → JSON extraction → table.
+    Sample completed outputs are included; choose an installed model to generate new ones.
+
+Example files live in `frontend/public/examples/` and are served at `/examples/*.json`.
+Model generation never runs automatically when loading a graph.
 
 The graph is stored in `localStorage` immediately and debounced (~550 ms) to
 `PUT /api/graph`, which writes `backend/data/graph.json` atomically. If the API
@@ -101,6 +171,10 @@ curl -X DELETE http://127.0.0.1:8787/api/graph
 | `GET`    | `/api/graph`   | Current graph snapshot         |
 | `PUT`    | `/api/graph`   | Replace the graph              |
 | `DELETE` | `/api/graph`   | Clear the stored graph         |
+| `POST`   | `/api/graph/import` | Validate and replace the entire graph |
+| `PUT`    | `/api/workspaces/{id}/tool` | Save typed tool settings/output |
+| `GET`    | `/api/ollama/models` | List locally installed models |
+| `POST`   | `/api/ollama/generate` | Stream a model response as NDJSON |
 
 ## Layout
 

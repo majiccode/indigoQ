@@ -10,6 +10,79 @@
   --accent-strong: #818cf8;
 }
 
+/* Connected mini-apps share the same quiet, instrument-like shell. */
+.topbar:has(.graph-file-actions) { overflow: visible; }
+.topbar:has(.graph-file-actions)::before { clip-path: inset(46.15% 0 15.39%); }
+.graph-file-actions { display: flex; align-items: center; gap: 7px; }
+.graph-file-actions > button, .graph-examples > button { border: 1px solid #a5b4fc50; border-radius: 6px; padding: 7px 11px; background: #ffffff09; font-size: 12px; white-space: nowrap; }
+.graph-file-actions button:disabled { opacity: .4; }
+.graph-file-actions button:hover:not(:disabled) { background: #a5b4fc25; }
+.graph-examples { position: relative; }
+.graph-menu-dismiss { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 25; cursor: default; }
+.graph-examples-menu { position: absolute; right: 0; top: calc(100% + 15px); width: min(390px, calc(100vw - 24px)); border: 1px solid #7776a0; border-radius: 9px; background: #17162b; padding: 10px; box-shadow: 0 15px 40px #0009; z-index: 26; }
+.graph-examples-menu p { font-size: 11px; line-height: 1.6; color: #b6b5d4; margin: 4px 7px 10px; }
+.graph-examples-menu > div { display: flex; align-items: center; border-top: 1px solid #ffffff12; }
+.graph-examples-menu div > button { flex: 1; text-align: left; padding: 12px 7px; border-radius: 5px; }
+.graph-examples-menu strong, .graph-examples-menu small { display: block; }
+.graph-examples-menu small { margin-top: 5px; color: #b6b5d4; font-size: 11px; line-height: 1.6; }
+.graph-examples-menu a { font-size: 10px; color: #c7d2fe; padding: 6px; white-space: nowrap; }
+.graph-file-message { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); z-index: 19; display: flex; gap: 14px; align-items: center; max-width: min(700px, 90vw); padding: 10px 15px; border: 1px solid #7776a0; border-radius: 7px; background: #24213c; font-size: 12px; overflow-wrap: anywhere; box-shadow: 0 4px 20px #0005; }
+.graph-file-message.is-error { border-color: #bf7480; background: #452733; }
+@media (max-width: 520px) { .graph-file-actions { gap: 4px; } .graph-file-actions > button, .graph-examples > button { padding: 7px 6px; font-size: 10px; } .topbar:has(.graph-file-actions) { padding-inline: 10px; gap: 7px; } .topbar:has(.graph-file-actions) .brand-sub { display: none; } }
+.tool-workspace { display: flex; flex-direction: column; min-height: 0; height: 100%; color: #e1e6d9; background: #192019; font-size: 12px; }
+.tool-scroll { flex: 1; min-height: 0; overflow: auto; padding: 14px; overscroll-behavior: contain; scrollbar-width: thin; }
+.tool-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; }
+.tool-toolbar > strong { margin-right: auto; }
+.tool-toolbar > span:not(.tool-badge) { color: #a3b197; font-size: 11px; }
+.tool-workspace button, .tool-file-button { padding: 6px 9px; border: 1px solid #46533f; border-radius: 5px; background: #ffffff06; color: #e1e6d9; font-size: 11px; }
+.tool-workspace button:hover { background: #b997ef20; border-color: #b997ef; }
+.tool-workspace button:disabled { opacity: .4; }
+.tool-workspace input:not([type=range]):not([type=checkbox]):not([type=file]), .tool-workspace select, .tool-workspace textarea { min-width: 0; padding: 6px 8px; border: 1px solid #46533f; border-radius: 4px; background: #111911; color: #e1e6d9; font: inherit; }
+.tool-workspace select { max-width: 100%; }
+.tool-workspace textarea { width: 100%; min-height: 64px; resize: vertical; font: 12px/1.7 ui-monospace, monospace; }
+.tool-workspace textarea:focus, .tool-workspace select:focus { outline: 1px solid #b997ef; }
+.tool-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; color: #bac9ae; }
+.tool-badge { color: #c8a4ff; font-size: 9px; letter-spacing: .12em; }
+.tool-hint { display: block; padding: 6px 0; color: #9cad91; font-size: 11px; line-height: 1.6; }
+.tool-footer { flex-shrink: 0; padding: 7px 12px; border-top: 1px solid #364232; color: #a3b197; font-size: 10px; overflow-wrap: anywhere; }
+.tool-error, .tool-warning { padding: 10px; margin: 8px 0; border: 1px solid #835351; border-radius: 5px; color: #f0b5aa; background: #4a242440; line-height: 1.6; }
+.tool-details { padding: 10px; margin: 8px 0; border: 1px solid #364232; border-radius: 5px; }
+.tool-details summary { cursor: pointer; color: #c0cdb6; margin-bottom: 6px; }
+.tool-details p { color: #9cad91; line-height: 1.6; }
+.tool-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }
+.tool-workspace .tool-primary { color: #172012; background: #c4a4ed; border-color: #c4a4ed; padding: 9px 18px; font-weight: 600; }
+.tool-file-button { position: relative; overflow: hidden; cursor: pointer; }
+.tool-file-button input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.tool-workspace .math-expressions { min-height: 150px; color: #d7c3f1; }
+.math-parameters { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 0; }
+.math-parameter { display: flex; align-items: center; gap: 8px; }
+.math-range { display: flex; flex-direction: column; gap: 3px; }
+.math-range label { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 9px; color: #9cad91; }
+.tool-workspace .math-range input { width: 78px; padding: 3px; }
+.math-chart-toolbar { display: flex; align-items: center; gap: 5px; padding: 8px 0; }
+.math-chart-toolbar span { margin-left: auto; color: #9cad91; font-size: 10px; }
+.math-chart { display: block; width: 100%; min-height: 180px; background: #131b13; border: 1px solid #46533f; border-radius: 5px; touch-action: none; cursor: crosshair; }
+.math-chart text { font: 11px ui-monospace, monospace; fill: #a3b197; }
+.math-legend { display: flex; flex-direction: column; gap: 7px; padding: 10px 0; font: 11px ui-monospace, monospace; }
+.math-legend label { display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.data-table-container { overflow: auto; max-height: 460px; border: 1px solid #46533f; border-radius: 5px; }
+.data-table { border-collapse: collapse; width: 100%; font: 11px ui-monospace, monospace; }
+.data-table th { position: sticky; top: 0; background: #283426; z-index: 1; white-space: nowrap; }
+.data-table td, .data-table th { padding: 3px; border: 1px solid #364232; text-align: left; }
+.tool-workspace .data-table input { border: none !important; background: transparent !important; width: 100%; min-width: 85px !important; }
+.data-table th input { max-width: 130px; font-weight: 600 !important; }
+.tool-workspace .data-table button { padding: 3px 6px; border: none; }
+.data-table td:first-child { color: #8d9d83; padding: 7px; }
+.data-table tr:hover { background: #c8a4ff08; }
+.tool-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; color: #a3b197; font-size: 11px; }
+.ollama-settings { border: none; padding: 0; margin: 0; min-width: 0; }
+.ollama-settings:disabled { opacity: .65; }
+.tool-workspace .ollama-prompt { min-height: 100px; }
+.ollama-context { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid #364232; border-radius: 5px; }
+.ollama-context label { display: flex; align-items: center; gap: 7px; }
+.ollama-context small { color: #9cad91; margin-left: auto; }
+.ollama-output { min-height: 100px; margin: 0; padding: 14px; border: 1px solid #46533f; border-radius: 5px; background: #111911; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.8 ui-monospace, monospace; }
+
 * {
   box-sizing: border-box;
 }

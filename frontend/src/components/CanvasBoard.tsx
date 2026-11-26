@@ -2,12 +2,14 @@
 
 import {
   useCallback,
+  useImperativeHandle,
   useEffect,
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
 } from "react";
 import { useRouter } from "next/navigation";
 
@@ -31,7 +33,8 @@ import {
   worldToScreen,
   type Route,
 } from "@/lib/geometry";
-import { fetchGraph, saveGraph, uploadContents } from "@/lib/graphApi";
+import { enqueueWorkspaceOperation, fetchGraph, importGraph, saveGraph, uploadContents } from "@/lib/graphApi";
+import { flushWorkspaces } from "@/lib/workspaceFlush";
 import { createSampleGraph } from "@/lib/graph";
 import WorkspaceContent from "@/components/Workspace";
 import GraphWorkspace from "@/components/GraphWorkspace";
@@ -124,10 +127,19 @@ const EMPTY_HOVER: HoverState = { workspaceId: null, port: null };
 
 interface CanvasBoardProps {
   focusWorkspaceId?: string | null;
+  ref?: Ref<CanvasBoardHandle>;
+  onReady?: () => void;
+}
+
+export interface CanvasBoardHandle {
+  snapshot: () => Promise<Graph>;
+  load: (graph: Graph) => Promise<void>;
 }
 
 export default function CanvasBoard({
   focusWorkspaceId: focusWorkspaceIdProp,
+  ref,
+  onReady,
 }: CanvasBoardProps = {}) {
   const [graph, setGraph] = useState<Graph>(createSampleGraph);
   const [renaming, setRenaming] = useState<RenameOverlay | null>(null);
@@ -135,6 +147,7 @@ export default function CanvasBoard({
   const [sync, setSync] = useState<SyncState>("loading");
   const [zoomPct, setZoomPct] = useState(100);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [graphEpoch, setGraphEpoch] = useState(0);
   const router = useRouter();
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -165,7 +178,7 @@ export default function CanvasBoard({
     }
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null;
-      saveGraph(next)
+      enqueueWorkspaceOperation(() => saveGraph(next))
         .then(() => {
           if (saveVersionRef.current === version) setSync("saved");
         })
@@ -275,6 +288,36 @@ export default function CanvasBoard({
     };
     setZoomPct(Math.round(scale * 100));
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    snapshot: async () => {
+      await flushWorkspaces();
+      return structuredClone(graphRef.current);
+    },
+    load: async (incoming) => {
+      await flushWorkspaces();
+      await enqueueWorkspaceOperation(async () => {
+        if (saveTimerRef.current !== null) {
+          window.clearTimeout(saveTimerRef.current); saveTimerRef.current = null;
+        }
+        saveVersionRef.current += 1;
+        const next = await importGraph(incoming);
+        graphRef.current = next;
+        sceneRevRef.current += 1;
+        selectedRef.current = null;
+        hoverRef.current = EMPTY_HOVER;
+        modeRef.current = { kind: "idle" };
+        cancelRename();
+        setGraphEpoch((epoch) => epoch + 1);
+        setGraph(next);
+        writeLocalGraph(next);
+        writeCleared(next.workspaces.length === 0);
+        fitView();
+        writeLocalViewport(viewportRef.current);
+        setSync("saved");
+      });
+    },
+  }), [cancelRename, fitView]);
 
   const zoomBy = useCallback((factor: number, anchor?: Point) => {
     const { width, height } = sizeRef.current;
@@ -466,6 +509,7 @@ export default function CanvasBoard({
 
       bootstrappedRef.current = true;
       maybeInitialFit();
+      onReady?.();
     };
 
     void bootstrap();
@@ -473,7 +517,7 @@ export default function CanvasBoard({
     return () => {
       cancelled = true;
     };
-  }, [maybeInitialFit]);
+  }, [maybeInitialFit, onReady]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1179,7 +1223,7 @@ export default function CanvasBoard({
       <div className="workspace-layer">
         {graph.workspaces.map((workspace) => (
           <GraphWorkspace
-            key={workspace.id}
+            key={`${graphEpoch}:${workspace.id}`}
             workspace={workspace}
             graphRef={graphRef}
             viewportRef={viewportRef}
@@ -1241,7 +1285,7 @@ export default function CanvasBoard({
               onGraphChange={(snapshot) => {
                 const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => {
                   const remote = snapshot.workspaces.find((next) => next.id === item.id);
-                  return remote ? { ...item, type: remote.type, contents: remote.contents, editor: remote.editor } : item;
+                  return remote ? { ...item, type: remote.type, contents: remote.contents, editor: remote.editor, tool: remote.tool } : item;
                 }) };
                 graphRef.current = updated;
                 sceneRevRef.current += 1;
@@ -1260,7 +1304,7 @@ export default function CanvasBoard({
                 return next;
               }}
               onWorkspaceChange={(next) => {
-                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => item.id === next.id ? { ...item, type: next.type, contents: next.contents, editor: next.editor } : item) };
+                const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => item.id === next.id ? { ...item, type: next.type, contents: next.contents, editor: next.editor, tool: next.tool } : item) };
                 graphRef.current = updated;
                 sceneRevRef.current += 1;
                 setGraph(updated);

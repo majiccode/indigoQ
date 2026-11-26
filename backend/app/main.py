@@ -16,11 +16,15 @@ from .models import (
     EditorDocument,
     Graph,
     GraphSnapshot,
+    MathState,
+    OllamaState,
     OpenDocumentRequest,
     SaveDocumentRequest,
+    TableState,
     Workspace,
     WorkspaceTypeRequest,
 )
+from .ollama import router as ollama_router
 from .store import GraphStore
 
 APP_VERSION = "0.1.0"
@@ -54,6 +58,7 @@ def create_app(data_file: Path | None = None) -> FastAPI:
         allow_headers=["*"],
         max_age=600,
     )
+    app.include_router(ollama_router)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -134,6 +139,11 @@ def create_app(data_file: Path | None = None) -> FastAPI:
 
         return store.save(graph)
 
+    @app.post("/api/graph/import", response_model=GraphSnapshot)
+    def import_graph(graph: Graph) -> GraphSnapshot:
+        """Replace the entire graph, validating it before any stored data changes."""
+        return store.save(graph)
+
     def find_workspace(graph: Graph, workspace_id: str) -> Workspace:
         workspace = next((item for item in graph.workspaces if item.id == workspace_id), None)
         if workspace is None:
@@ -166,6 +176,18 @@ def create_app(data_file: Path | None = None) -> FastAPI:
     def update_document(workspace_id: str, document: EditorDocument) -> GraphSnapshot:
         def change(graph: Graph) -> None:
             editor_workspace(graph, workspace_id).editor = document
+
+        return store.update(change)
+
+    @app.put("/api/workspaces/{workspace_id}/tool", response_model=GraphSnapshot)
+    def update_tool(
+        workspace_id: str, state: MathState | TableState | OllamaState
+    ) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            workspace = find_workspace(graph, workspace_id)
+            if workspace.type != state.kind:
+                raise HTTPException(409, "Settings must match the workspace type")
+            workspace.tool = state
 
         return store.update(change)
 

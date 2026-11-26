@@ -1,8 +1,16 @@
 import { normalizeGraph } from "./graph";
-import type { EditorDocument, Graph, GraphSnapshot } from "./types";
+import type { EditorDocument, Graph, GraphSnapshot, ToolState } from "./types";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const REQUEST_TIMEOUT_MS = 4000;
+
+// Graph snapshots must be applied in request order across all workspace apps.
+let operationQueue: Promise<unknown> = Promise.resolve();
+export function enqueueWorkspaceOperation<T>(action: () => Promise<T>): Promise<T> {
+  const result = operationQueue.catch(() => {}).then(action);
+  operationQueue = result;
+  return result;
+}
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -70,6 +78,20 @@ export async function clearGraph(): Promise<void> {
   }
 }
 
+export async function importGraph(graph: Graph): Promise<Graph> {
+  const response = await request("/api/graph/import", { method: "POST", body: JSON.stringify(graph) });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    const detail = Array.isArray(error?.detail)
+      ? error.detail.map((item: { loc: unknown[]; msg: string }) => `${item.loc.join(".")}: ${item.msg}`).join("; ")
+      : error?.detail;
+    throw new Error(typeof detail === "string" ? detail : `Graph load failed (${response.status})`);
+  }
+  const result = normalizeGraph(await response.json());
+  if (!result) throw new Error("Invalid graph import response");
+  return result;
+}
+
 export async function uploadContents(
   workspaceId: string,
   files: FileList | File[],
@@ -105,6 +127,7 @@ export async function uploadContents(
 export type WorkspaceOperation =
   | { kind: "type"; type: string }
   | { kind: "draft"; document: EditorDocument }
+  | { kind: "tool"; state: ToolState }
   | { kind: "open"; workspaceId: string; fileId: string }
   | { kind: "save"; workspaceId: string; fileId?: string; name: string; text: string };
 
@@ -115,6 +138,7 @@ export async function workspaceOperation(id: string, operation: WorkspaceOperati
   switch (operation.kind) {
     case "type": path = "type"; body = { type: operation.type }; break;
     case "draft": path = "editor"; method = "PUT"; body = operation.document; break;
+    case "tool": path = "tool"; method = "PUT"; body = operation.state; break;
     case "open": path = "editor/open"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId }; break;
     case "save": path = "editor/save"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId, name: operation.name, text: operation.text }; break;
   }

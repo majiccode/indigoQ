@@ -1,0 +1,32 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      {
+        "id": "measure-notes", "name": "Start here — Measured vs. Model", "type": "text-editor",
+        "x": 0, "y": 0, "width": 460, "height": 520, "contents": [],
+        "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "MEASURED VS. MODEL\n\nThe table is preloaded with noisy sine-wave measurements, also included as a real CSV in Measurement Files.\n\n1. Open Fit the Model fullscreen.\n2. Adjust amplitude, frequency, and offset to align the curve with the orange measurements.\n3. Change a y cell in Measurements; the overlay follows saved edits.\n4. To reset the data, select Measurement Files / measurements.csv in the table's import dropdown.\n5. Try a computed column named doubled with formula y * 2.\n6. Select a different scatter Y column in Math Lab.\n\nSort/filter only change the table view. Exports and the chart use the full dataset.\n\nSave JSON includes the original CSV and the edited table." }
+      },
+      {
+        "id": "measure-files", "name": "Measurement Files", "type": "content-source",
+        "x": 550, "y": 0, "width": 350, "height": 350,
+        "contents": [ { "id": "sine-csv", "name": "measurements.csv", "mimeType": "text/csv", "size": 113, "dataUrl": "data:text/csv;base64,eCx5CjAsMC4wOAowLjUsMC40NAoxLDAuODgKMS41LDEuMDMKMiwwLjg2CjIuNSwwLjY0CjMsMC4xMAozLjUsLTAuMzEKNCwtMC44MAo0LjUsLTAuOTQKNSwtMS4wMQo1LjUsLTAuNjcKNiwtMC4yNQo=" } ]
+      },
+      {
+        "id": "measure-table", "name": "Measurements", "type": "data-table",
+        "x": 1000, "y": 0, "width": 520, "height": 550, "contents": [],
+        "tool": { "kind": "data-table", "columns": ["x", "y"], "rows": [["0", "0.08"], ["0.5", "0.44"], ["1", "0.88"], ["1.5", "1.03"], ["2", "0.86"], ["2.5", "0.64"], ["3", "0.10"], ["3.5", "-0.31"], ["4", "-0.80"], ["4.5", "-0.94"], ["5", "-1.01"], ["5.5", "-0.67"], ["6", "-0.25"]] }
+      },
+      {
+        "id": "measure-math", "name": "Fit the Model", "type": "math-lab",
+        "x": 1620, "y": 0, "width": 700, "height": 650, "contents": [],
+        "tool": { "kind": "math-lab", "expressions": "amplitude = 0.8\nfrequency = 1.1\noffset = 0.1\ny = amplitude * sin(frequency * x) + offset", "sourceId": "", "parameters": {}, "bounds": [-0.5, 6.5, -1.6, 1.6], "xColumn": "x", "yColumn": "y" }
+      }
+    ],
+    "wires": [
+      { "id": "measure-file-table", "source": "measure-files", "sourcePort": { "side": "right", "t": 0.5 }, "target": "measure-table", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "measure-table-math", "source": "measure-table", "sourcePort": { "side": "right", "t": 0.5 }, "target": "measure-math", "targetPort": { "side": "left", "t": 0.4 } }
+    ]
+  }
+}
