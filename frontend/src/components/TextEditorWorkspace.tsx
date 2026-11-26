@@ -132,8 +132,6 @@ type Picker = "open" | "save" | null;
 export default function TextEditorWorkspace({ workspace, graph, onOperation }: TypedWorkspaceProps) {
   const initial = workspace.editor ?? { text: "", name: "untitled.txt", sourceWorkspaceId: null, sourceFileId: null };
   const [document, setDocument] = useState<EditorDocument>(initial);
-  const [tokens, setTokens] = useState<NumberToken[]>([]);
-  const [selectionLabel, setSelectionLabel] = useState("Select a number or a line of values");
   const [line, setLine] = useState(1);
   const [status, setStatus] = useState("Draft");
   const [picker, setPicker] = useState<Picker>(null);
@@ -141,7 +139,6 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
   const [destination, setDestination] = useState("");
   const [filename, setFilename] = useState(initial.name);
   const [overwrite, setOverwrite] = useState("");
-  const [visualization, setVisualization] = useState("curve");
   const [busy, setBusy] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -176,12 +173,7 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
           if (update.selectionSet || update.docChanged) {
             const selection = update.state.selection.main;
             const currentLine = update.state.doc.lineAt(selection.head);
-            const selectedText = update.state.sliceDoc(selection.from, selection.to);
-            const isNumberSelection = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(selectedText);
-            const all = numbersOnLine(currentLine.text, currentLine.from);
-            setTokens(isNumberSelection ? all.filter((token) => token.from >= selection.from && token.to <= selection.to) : all);
             setLine(currentLine.number);
-            setSelectionLabel(selectedText ? `Selection · ${selectedText.slice(0, 40)}` : `Line ${currentLine.number} · numeric controls`);
           }
           if (update.docChanged) {
             const next = { ...documentRef.current, text: update.state.doc.toString() };
@@ -266,18 +258,6 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
         <span className="editor-live-badge">● LIVE TEXT</span>
       </div>
       <div className="editor-surface" ref={hostRef} />
-      <section className="editor-instruments" aria-label="Selection instruments">
-        <div className="editor-instrument-heading"><span>{selectionLabel}</span><select aria-label="Visualization" value={visualization} onChange={(event) => setVisualization(event.target.value)}><option value="curve">Curve</option><option value="wave">Wave</option></select></div>
-        {tokens.length ? <div className="editor-instrument-row">
-          <div className="editor-knobs">{tokens.slice(0, 8).map((token) => <NumberKnob key={token.from} token={token} onChange={(value) => {
-            const view = viewRef.current;
-            if (!view) return;
-            const replacement = String(Number(value.toFixed(4)));
-            view.dispatch({ changes: { from: token.from, to: token.to, insert: replacement }, selection: { anchor: token.from, head: token.from + replacement.length } });
-          }} />)}</div>
-          <SelectionGraph values={tokens.map((token) => token.value)} mode={visualization} />
-        </div> : <div className="editor-instrument-empty">Highlight a numeric value to reveal a knob. Select a line of values to explore its curve.</div>}
-      </section>
       <footer className="editor-footer"><span role="status">{status}</span><span>Ln {line} · {document.text.length} chars · UTF-8</span></footer>
 
       {picker && <div className="editor-dialog-backdrop"><div className="editor-dialog" role="dialog" aria-label={picker === "open" ? "Open connected file" : "Save to connected workspace"}>
