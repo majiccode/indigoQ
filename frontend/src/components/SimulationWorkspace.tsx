@@ -5,6 +5,7 @@ import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { connectedControls, useLiveRevision } from "@/lib/studioRuntime";
 import { simulate, type SimulationMode } from "@/lib/simulation";
 import { StudioShell, useStudio } from "./StudioKit";
+import NumberField from "./NumberField";
 
 export default function SimulationWorkspace(props: TypedWorkspaceProps) {
   const app = useStudio(props, "simulation");
@@ -42,7 +43,7 @@ export default function SimulationWorkspace(props: TypedWorkspaceProps) {
       {mode === "spring" || mode === "pendulum" || spatial ? <><path d={`M${mode === "spring" ? 20 : 250} ${mode === "spring" ? 150 : spatial ? 150 : 35} L${x} ${y}`} stroke="#9cdbbd" strokeWidth="3" />{spatial && <circle cx="250" cy="150" r="10" fill="#f2bd78" />}<circle cx={x} cy={y} r="18" fill={String(controls.color ?? "#c8a4ff")} /></> : <>{rows.length > 0 && [1, 2].map((column) => <polyline key={column} fill="none" stroke={column === 1 ? "#9cdbbd" : "#c8a4ff"} strokeWidth="2" points={rows.map((row) => `${row[0] / duration * 500},${280 - row[column] / Math.max(1, ...rows.map((r) => r[column])) * 250}`).join(" ")} />)}<path d={`M${time / duration * 500} 0V300`} stroke="#f2bd78" /></>}
     </svg>
     <input aria-label="Simulation time" type="range" min="0" max={duration} step="0.01" value={time} onChange={(event) => { setPlaying(false); setTime(Number(event.target.value)); }} />
-    <div className="tool-toolbar">{["amplitude", "frequency", "damping"].map((name) => <label key={name}>{name}<input aria-label={`Simulation ${name}`} type="number" step="0.05" value={parameters[name]} disabled={controls[name] !== undefined} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) app.setting(name, event.target.valueAsNumber); }} /></label>)}</div>
+    <div className="tool-toolbar">{["amplitude", "frequency", "damping"].map((name) => <label key={name}>{name}<NumberField ariaLabel={`Simulation ${name}`} step={0.05} value={parameters[name]} disabled={controls[name] !== undefined} onChange={(n) => app.setting(name, n)} /></label>)}</div>
     <p className="tool-hint">Connect Shared Controls for live parameters. Spring/pendulum: click the scene to set displacement. Capture data publishes the full run to tables/charts. Population parameters: growth, predation, conversion, death; epidemic: transmission, recovery; orbit: gravity.</p>
   </StudioShell>;
 }

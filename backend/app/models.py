@@ -153,6 +153,13 @@ class SaveDocumentRequest(ApiModel):
     fileId: str | None = None
 
 
+class SaveFileRequest(ApiModel):
+    workspaceId: str
+    name: str = Field(min_length=1, max_length=255)
+    mimeType: str = Field(min_length=1, max_length=120)
+    dataUrl: str = Field(min_length=1)
+
+
 class Wire(ApiModel):
     """A directed dataflow connection between two workspaces."""
 

@@ -310,6 +310,20 @@ export const RESIZE_HANDLE_PX = 10;
 
 export type ResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
+export function resizeCursor(corner: ResizeCorner): string {
+  return corner === "top-left" || corner === "bottom-right" ? "nwse-resize" : "nesw-resize";
+}
+
+export function workspaceResizeAt(workspaces: Workspace[], point: Point, scale: number) {
+  for (let index = workspaces.length - 1; index >= 0; index -= 1) {
+    const workspace = workspaces[index];
+    const corner = workspaceCornerAt(workspace, point, scale);
+    if (corner) return { workspace, corner };
+    if (pointInRect(point, workspace)) return null;
+  }
+  return null;
+}
+
 export function workspaceCornerAt(
   workspace: Workspace,
   point: Point,

@@ -299,3 +299,129 @@ def test_editor_rejects_binary_and_type_reassignment(client: TestClient) -> None
         client.post("/api/workspaces/publish/type", json={"type": "not-registered"}).status_code
         == 422
     )
+
+
+def image_file_graph(
+    client: TestClient, *, target_type: str = CONTENT_SOURCE_TYPE, wired: bool = True
+) -> None:
+    client.delete("/api/graph")
+    wire = {
+        "id": "image-file-wire",
+        "source": "image",
+        "sourcePort": {"side": "right", "t": 0.5},
+        "target": "files",
+        "targetPort": {"side": "left", "t": 0.5},
+    }
+    response = client.put(
+        "/api/graph",
+        json={
+            "workspaces": [
+                {
+                    "id": "image",
+                    "name": "Image Studio",
+                    "x": 0,
+                    "y": 0,
+                    "width": 300,
+                    "height": 200,
+                    "type": "image-studio",
+                },
+                {
+                    "id": "files",
+                    "name": "Files",
+                    "x": 500,
+                    "y": 0,
+                    "width": 300,
+                    "height": 200,
+                    "type": target_type,
+                },
+            ],
+            "wires": [wire] if wired else [],
+        },
+    )
+    assert response.status_code == 200
+
+
+def png_data_url(payload: bytes) -> str:
+    return "data:image/png;base64," + base64.b64encode(payload).decode("ascii")
+
+
+def test_published_image_saves_to_connected_file_workspace(client: TestClient) -> None:
+    image_file_graph(client)
+    first = b"\x89PNG\r\n\x1a\nfirst"
+    saved = client.post(
+        "/api/workspaces/image/file/save",
+        json={
+            "workspaceId": "files",
+            "name": "edited.png",
+            "mimeType": "image/png",
+            "dataUrl": png_data_url(first),
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    contents = next(w for w in saved.json()["workspaces"] if w["id"] == "files")["contents"]
+    assert len(contents) == 1
+    assert contents[0]["name"] == "edited.png"
+    assert contents[0]["mimeType"] == "image/png"
+    assert base64.b64decode(contents[0]["dataUrl"].split(",", 1)[1]) == first
+    file_id = contents[0]["id"]
+
+    second = b"\x89PNG\r\n\x1a\nsecond"
+    saved = client.post(
+        "/api/workspaces/image/file/save",
+        json={
+            "workspaceId": "files",
+            "name": "edited.png",
+            "mimeType": "image/png",
+            "dataUrl": png_data_url(second),
+        },
+    )
+    assert saved.status_code == 200
+    contents = next(w for w in saved.json()["workspaces"] if w["id"] == "files")["contents"]
+    assert len(contents) == 1
+    assert contents[0]["id"] == file_id
+    assert base64.b64decode(contents[0]["dataUrl"].split(",", 1)[1]) == second
+
+
+def test_file_save_requires_wire_and_content_source(client: TestClient) -> None:
+    image_file_graph(client, wired=False)
+    response = client.post(
+        "/api/workspaces/image/file/save",
+        json={
+            "workspaceId": "files",
+            "name": "edited.png",
+            "mimeType": "image/png",
+            "dataUrl": png_data_url(b"x"),
+        },
+    )
+    assert response.status_code == 403
+
+    image_file_graph(client, target_type="text-editor")
+    response = client.post(
+        "/api/workspaces/image/file/save",
+        json={
+            "workspaceId": "files",
+            "name": "edited.png",
+            "mimeType": "image/png",
+            "dataUrl": png_data_url(b"x"),
+        },
+    )
+    assert response.status_code == 409
+
+
+def test_file_save_rejects_malformed_data_url(client: TestClient) -> None:
+    image_file_graph(client)
+    for data_url in (
+        "data:text/plain;base64,aGk=",
+        "data:image/png;base64,!!!",
+        "not-a-data-url",
+    ):
+        response = client.post(
+            "/api/workspaces/image/file/save",
+            json={
+                "workspaceId": "files",
+                "name": "edited.png",
+                "mimeType": "image/png",
+                "dataUrl": data_url,
+            },
+        )
+        assert response.status_code == 422

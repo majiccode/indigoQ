@@ -30,7 +30,8 @@ import {
   pointInHeader,
   pointInWorkspaceMagnify,
   screenToWorld,
-  workspaceCornerAt,
+  workspaceResizeAt,
+  resizeCursor,
   worldToScreen,
   type Route,
 } from "@/lib/geometry";
@@ -866,26 +867,25 @@ export default function CanvasBoard({
         router.push(`/workspace?id=${encodeURIComponent(workspace.id)}`);
         return;
       }
-      if (workspace) {
-        const corner = workspaceCornerAt(workspace, world, viewport.scale);
-        if (corner) {
-          selectWorkspace(workspace.id);
-          canvas.setPointerCapture(event.pointerId);
-          modeRef.current = {
-            kind: "resize",
-            id: workspace.id,
-            corner,
-            origin: {
-              x: workspace.x,
-              y: workspace.y,
-              width: workspace.width,
-              height: workspace.height,
-            },
-            start: world,
-          };
-          canvas.style.cursor = "crosshair";
-          return;
-        }
+      const resize = workspaceResizeAt(graphRef.current.workspaces, world, viewport.scale);
+      if (resize) {
+        const { workspace, corner } = resize;
+        selectWorkspace(workspace.id);
+        canvas.setPointerCapture(event.pointerId);
+        modeRef.current = {
+          kind: "resize",
+          id: workspace.id,
+          corner,
+          origin: {
+            x: workspace.x,
+            y: workspace.y,
+            width: workspace.width,
+            height: workspace.height,
+          },
+          start: world,
+        };
+        canvas.style.cursor = resizeCursor(corner);
+        return;
       }
 
       const border = nearestWorkspaceBorder(
@@ -937,7 +937,8 @@ export default function CanvasBoard({
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       const canvas = event.currentTarget;
       const screen = screenPointFromEvent(event);
-      const viewport = viewportRef.current;
+      const viewport = focusWorkspaceIdProp && fullscreenViewportRef.current
+        ? fullscreenViewportRef.current : viewportRef.current;
       const world = screenToWorld(viewport, screen);
       const mode = modeRef.current;
 
@@ -985,6 +986,7 @@ export default function CanvasBoard({
       }
 
       if (mode.kind === "resize") {
+        canvas.style.cursor = resizeCursor(mode.corner);
         const workspace = graphRef.current.workspaces.find((item) => item.id === mode.id);
         if (workspace) {
           const dx = world.x - mode.start.x;
@@ -1022,6 +1024,18 @@ export default function CanvasBoard({
           workspace.height = nh;
           sceneRevRef.current += 1;
         }
+        return;
+      }
+
+      const resize = !spaceRef.current
+        ? workspaceResizeAt(graphRef.current.workspaces, world, viewport.scale) : null;
+      if (resize) {
+        hoverRef.current = {
+          workspaceId: resize.workspace.id,
+          port: null,
+          resize: { workspaceId: resize.workspace.id, corner: resize.corner },
+        };
+        canvas.style.cursor = resizeCursor(resize.corner);
         return;
       }
 
@@ -1140,8 +1154,9 @@ export default function CanvasBoard({
         canvas.releasePointerCapture(event.pointerId);
       }
       canvas.style.cursor = spaceRef.current ? "grab" : "default";
+      handlePointerMove(event);
     },
-    [commitGraph, selectWorkspace],
+    [commitGraph, selectWorkspace, handlePointerMove],
   );
 
   const handlePointerCancel = useCallback(

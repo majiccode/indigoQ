@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { clearLive, connectedControls, publishLive, useLiveRevision } from "@/lib/studioRuntime";
 import { StudioShell, useStudio } from "./StudioKit";
+import NumberField from "./NumberField";
 import { registerWorkspaceFlush } from "@/lib/workspaceFlush";
 
 interface Track { name: string; from: number; to: number }
@@ -48,7 +49,7 @@ export default function TimelineWorkspace(props: TypedWorkspaceProps) {
   }, [recording]);
   const persistTime = () => app.patch({ output: valueJSON, settings: { ...app.state.settings, time, engaged } });
   return <StudioShell kind="timeline" status={`${app.status} · ${time.toFixed(2)} / ${duration} s${recording ? " · Recording" : ""}`} error={app.error || trackError}>
-    <div className="tool-toolbar"><button onClick={() => { setEngaged(true); setPlaying(!playing); if (playing) persistTime(); }}>{playing ? "Pause" : "Play"}</button><button onClick={() => { setPlaying(false); setTime(0); setEngaged(false); app.patch({ output: "{}", settings: { ...app.state.settings, time: 0, engaged: false } }); }}>Reset / release controls</button><label>Duration <input type="number" min="0.1" max="3600" value={duration} onChange={(event) => { if (event.target.valueAsNumber >= 0.1 && event.target.valueAsNumber <= 3600) app.setting("duration", event.target.valueAsNumber); }} /></label><label><input type="checkbox" checked={loop} onChange={(event) => app.setting("loop", event.target.checked)} /> Loop</label></div>
+    <div className="tool-toolbar"><button onClick={() => { setEngaged(true); setPlaying(!playing); if (playing) persistTime(); }}>{playing ? "Pause" : "Play"}</button><button onClick={() => { setPlaying(false); setTime(0); setEngaged(false); app.patch({ output: "{}", settings: { ...app.state.settings, time: 0, engaged: false } }); }}>Reset / release controls</button><label>Duration <NumberField ariaLabel="Duration" min={0.1} max={3600} value={duration} onChange={(n) => app.setting("duration", n)} /></label><label><input type="checkbox" checked={loop} onChange={(event) => app.setting("loop", event.target.checked)} /> Loop</label></div>
     <input aria-label="Timeline time" type="range" min="0" max={duration} step="0.01" value={time} onChange={(event) => { setEngaged(true); setPlaying(false); setTime(Number(event.target.value)); }} onPointerUp={persistTime} />
     <div className="timeline-tracks">{tracks.map((track, i) => <div key={i}><strong>{track.name}</strong><svg viewBox="0 0 400 50"><path d="M0 45L400 5" stroke="#c8a4ff" fill="none" /><circle cx={time / duration * 400} cy={45 - time / duration * 40} r="5" fill="#9cdbbd" /></svg><span>{Number(values[track.name].toFixed(3))}</span></div>)}</div>
     <details className="tool-details"><summary>Edit tracks</summary><textarea aria-label="Timeline tracks" value={app.state.text} onChange={(event) => app.patch({ text: event.target.value })} /></details>

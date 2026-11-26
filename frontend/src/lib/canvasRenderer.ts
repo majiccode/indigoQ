@@ -14,6 +14,7 @@ import {
   portPoint,
   previewRoute,
   type Route,
+  type ResizeCorner,
 } from "./geometry";
 import type { HoverState, InteractionMode } from "./interaction";
 import type { Point, Port, Viewport, Wire, Workspace } from "./types";
@@ -340,7 +341,30 @@ function paintWorkspace(
 
   paintWorkspaceChrome(ctx, workspace, frame);
   paintWorkspaceBody(ctx, workspace, scale);
+  paintResizeHandles(ctx, workspace, frame);
   ctx.restore();
+}
+
+function paintResizeHandles(ctx: CanvasRenderingContext2D, workspace: Workspace, frame: SceneFrame): void {
+  const { scale } = frame.viewport;
+  const size = 8 / scale;
+  const corners: [ResizeCorner, number, number][] = [
+    ["top-left", workspace.x, workspace.y],
+    ["top-right", workspace.x + workspace.width, workspace.y],
+    ["bottom-left", workspace.x, workspace.y + workspace.height],
+    ["bottom-right", workspace.x + workspace.width, workspace.y + workspace.height],
+  ];
+  for (const [corner, x, y] of corners) {
+    const active = (frame.hover.resize?.workspaceId === workspace.id && frame.hover.resize.corner === corner)
+      || (frame.mode.kind === "resize" && frame.mode.id === workspace.id && frame.mode.corner === corner);
+    ctx.fillStyle = active ? "#eef0ff" : "#17172f";
+    ctx.strokeStyle = active ? "#c4b5fd" : frame.selectedId === workspace.id ? "#c7d2fe" : "#818cf8";
+    ctx.lineWidth = (active ? 2 : 1.5) / scale;
+    ctx.beginPath();
+    ctx.rect(x - size / 2, y - size / 2, size, size);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 
 function paintWorkspaceChrome(

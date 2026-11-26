@@ -41,4 +41,5 @@ export interface HoverPort {
 export interface HoverState {
   workspaceId: string | null;
   port: HoverPort | null;
+  resize?: { workspaceId: string; corner: ResizeCorner };
 }

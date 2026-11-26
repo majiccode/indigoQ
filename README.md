@@ -94,6 +94,8 @@ immutable once assigned. Dropping files onto a blank workspace selects FileWorks
 - Wire **FileWorkspace → TextEditor** to expose files under **File → Open**.
 - Wire **TextEditor → FileWorkspace** to expose a **File → Save** destination.
   Both directions can coexist; overwrite requires explicitly choosing a file.
+- Wire **Image Studio → FileWorkspace** to save published PNGs into that workspace's
+  files. Publishing again overwrites `edited.png` in each connected FileWorkspace.
 - Editor drafts are saved independently of files. Open/Save require the API and
   validate directed connections server-side. TextEditor opens UTF-8 text files.
 - The workspace toolbar's fullscreen button opens `/workspace?id=…`; double-click
@@ -162,7 +164,7 @@ Fourteen additional mini-apps are available from the workspace type picker:
 | **SQL Explorer** | Read-only SQLite queries against connected `input1`, `input2`, … tables. Joins, grouping, and aggregates. Isolated backend memory database, 3-second query limit, 10,000 output rows. |
 | **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
 | **Diff / Compare** | Two local or connected text sources, JSON formatting, line-level additions/removals, and publish-right-side action. |
-| **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces; connect to a vision-capable Ollama model. |
+| **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces and saves `edited.png` into any connected FileWorkspace; connect to a vision-capable Ollama model. |
 | **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
 | **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
 | **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |

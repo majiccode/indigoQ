@@ -17,6 +17,22 @@ const { registerWorkspaceFlush, flushWorkspaces } = load("workspaceFlush");
 const { parseControls, savedControls, selectPath, searchPassages } = load("studio");
 const { simulate } = load("simulation");
 const { diffLines } = load("textDiff");
+const { workspaceResizeAt, resizeCursor } = load("geometry");
+
+test("resize corners remain reachable outside borders and across zoom levels", () => {
+  const workspace = { id: "back", x: 100, y: 100, width: 300, height: 200 };
+  for (const scale of [0.25, 1, 4]) {
+    assert.equal(workspaceResizeAt([workspace], { x: 100 - 5 / scale, y: 100 }, scale)?.corner, "top-left");
+    assert.equal(workspaceResizeAt([workspace], { x: 400 + 5 / scale, y: 300 }, scale)?.corner, "bottom-right");
+    assert.equal(workspaceResizeAt([workspace], { x: 250, y: 100 }, scale), null);
+  }
+  const front = { id: "front", x: 50, y: 50, width: 400, height: 300 };
+  assert.equal(workspaceResizeAt([workspace, front], { x: 100, y: 100 }, 1), null);
+  assert.equal(resizeCursor("top-left"), "nwse-resize");
+  assert.equal(resizeCursor("bottom-right"), "nwse-resize");
+  assert.equal(resizeCursor("top-right"), "nesw-resize");
+  assert.equal(resizeCursor("bottom-left"), "nesw-resize");
+});
 
 test("math precedence, powers, functions, and named parameters", () => {
   assert.equal(compileExpression("-2^2 + 2^3^2")({}), 508);

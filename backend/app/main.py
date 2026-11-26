@@ -21,6 +21,7 @@ from .models import (
     OllamaState,
     OpenDocumentRequest,
     SaveDocumentRequest,
+    SaveFileRequest,
     StudioState,
     TableState,
     Workspace,
@@ -259,6 +260,41 @@ def create_app(data_file: Path | None = None) -> FastAPI:
                 sourceWorkspaceId=target.id,
                 sourceFileId=saved.id,
             )
+
+        return store.update(change)
+
+    @app.post("/api/workspaces/{workspace_id}/file/save", response_model=GraphSnapshot)
+    def save_file(workspace_id: str, request: SaveFileRequest) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            source = find_workspace(graph, workspace_id)
+            target = find_workspace(graph, request.workspaceId)
+            require_file_connection(graph, source.id, target.id)
+            if target.type != CONTENT_SOURCE_TYPE:
+                raise HTTPException(409, "Destination does not accept files")
+            expected = f"data:{request.mimeType};base64"
+            header, separator, payload = request.dataUrl.partition(",")
+            if not separator or header != expected:
+                raise HTTPException(422, "Data URL must match the declared MIME type")
+            try:
+                raw = base64.b64decode(payload, validate=True)
+            except ValueError as error:
+                raise HTTPException(422, "Invalid base64 data URL") from error
+            if len(raw) > 100_000_000:
+                raise HTTPException(413, "File is too large")
+            entry = next((item for item in target.contents if item.name == request.name), None)
+            if entry is None and len(target.contents) >= 1000:
+                raise HTTPException(409, "Destination already has the maximum number of files")
+            saved = ContentEntry(
+                id=entry.id if entry else str(uuid4()),
+                name=request.name,
+                mimeType=request.mimeType,
+                size=len(raw),
+                dataUrl=request.dataUrl,
+            )
+            if entry:
+                target.contents[target.contents.index(entry)] = saved
+            else:
+                target.contents.append(saved)
 
         return store.update(change)
 

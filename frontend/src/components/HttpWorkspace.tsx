@@ -5,6 +5,7 @@ import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { studioRequest } from "@/lib/studioApi";
 import { parseTable } from "@/lib/workspaceData";
 import { StudioShell, useStudio } from "./StudioKit";
+import NumberField from "./NumberField";
 
 export default function HttpWorkspace(props: TypedWorkspaceProps) {
   const app = useStudio(props, "http-client");
@@ -34,7 +35,7 @@ export default function HttpWorkspace(props: TypedWorkspaceProps) {
     <div className="tool-toolbar"><select aria-label="HTTP method" value={String(app.state.settings.method ?? "GET")} onChange={(event) => app.setting("method", event.target.value)}>{["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"].map((method) => <option key={method}>{method}</option>)}</select><input aria-label="Request URL" className="studio-grow" value={String(app.state.settings.url ?? "http://127.0.0.1:8787/api/health")} onChange={(event) => app.setting("url", event.target.value)} /><button disabled={app.busy} onClick={() => void send()}>Send</button><button disabled={!app.busy} onClick={() => abort.current?.abort()}>Cancel</button></div>
     <label className="tool-field">Headers (JSON)<textarea value={String(app.state.settings.headers ?? "{}")} onChange={(event) => app.setting("headers", event.target.value)} /></label>
     <label className="tool-field">Request body<textarea value={app.state.text} onChange={(event) => app.patch({ text: event.target.value })} /></label>
-    <div className="tool-toolbar"><label>Refresh interval (seconds)<input type="number" min="2" value={Number(app.state.settings.interval ?? 10)} onChange={(event) => { if (event.target.valueAsNumber >= 2) app.setting("interval", event.target.valueAsNumber); }} /></label><button onClick={() => setPolling(!polling)}>{polling ? "Stop refresh" : "Start refresh"}</button></div>
+    <div className="tool-toolbar"><label>Refresh interval (seconds)<NumberField ariaLabel="Refresh interval" min={2} value={Number(app.state.settings.interval ?? 10)} onChange={(n) => app.setting("interval", n)} /></label><button onClick={() => setPolling(!polling)}>{polling ? "Stop refresh" : "Start refresh"}</button></div>
     <details className="tool-details"><summary>Response headers</summary><pre>{String(app.state.settings.responseHeaders ?? "")}</pre></details><pre className="studio-output">{app.state.output || "Response appears here. Connect → Transform or Data Table."}</pre>
   </StudioShell>;
 }

@@ -129,7 +129,8 @@ export type WorkspaceOperation =
   | { kind: "draft"; document: EditorDocument }
   | { kind: "tool"; state: ToolState }
   | { kind: "open"; workspaceId: string; fileId: string }
-  | { kind: "save"; workspaceId: string; fileId?: string; name: string; text: string };
+  | { kind: "save"; workspaceId: string; fileId?: string; name: string; text: string }
+  | { kind: "saveFile"; workspaceId: string; name: string; mimeType: string; dataUrl: string };
 
 export async function workspaceOperation(id: string, operation: WorkspaceOperation): Promise<Graph> {
   let path: string;
@@ -141,6 +142,7 @@ export async function workspaceOperation(id: string, operation: WorkspaceOperati
     case "tool": path = "tool"; method = "PUT"; body = operation.state; break;
     case "open": path = "editor/open"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId }; break;
     case "save": path = "editor/save"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId, name: operation.name, text: operation.text }; break;
+    case "saveFile": path = "file/save"; body = { workspaceId: operation.workspaceId, name: operation.name, mimeType: operation.mimeType, dataUrl: operation.dataUrl }; break;
   }
   const response = await request(`/api/workspaces/${encodeURIComponent(id)}/${path}`, { method, body: JSON.stringify(body) });
   if (!response.ok) {

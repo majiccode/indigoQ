@@ -7,6 +7,7 @@ import { parseMath } from "@/lib/mathEngine";
 import { downloadText, workspaceTable, workspaceText } from "@/lib/workspaceData";
 import { connectedControls, useLiveRevision } from "@/lib/studioRuntime";
 import { useToolState } from "./useToolState";
+import NumberField from "./NumberField";
 
 const EXAMPLE = "amplitude = 2\nfrequency = 1.5\ndamping = 0.15\n\ny = amplitude * exp(-damping * abs(x)) * sin(frequency * x)\ny = amplitude * cos(frequency * x)";
 const COLORS = ["#c8a4ff", "#9cdbbd", "#f2bd78", "#86bdf6", "#f296ac"];
@@ -76,9 +77,8 @@ export default function MathLabWorkspace({ workspace, graph, onOperation }: Type
         const parameter = state.parameters[name] ?? { value: initial, min: -radius, max: radius };
         const change = (patch: Partial<typeof parameter>) => update({ ...state, parameters: { ...state.parameters, [name]: { ...parameter, ...patch } } });
         return <div className="math-parameter" key={name}><label className="editor-knob"><span className="editor-knob-face" style={{ background: `conic-gradient(from 220deg, #b997ef ${Math.max(0, Math.min(1, (parameter.value - parameter.min) / (parameter.max - parameter.min))) * 280}deg, #3c4938 0deg 280deg, transparent 0)` }}><span><i>{name}</i><strong>{Number(parameter.value.toFixed(3))}</strong></span><input aria-label={`Adjust ${name}`} type="range" min={parameter.min} max={parameter.max} step={(parameter.max - parameter.min) / 1000} value={parameter.value} onChange={(event) => change({ value: Number(event.target.value) })} /></span><small>{name}</small></label>
-          <div className="math-range">{(["min", "value", "max"] as const).map((field) => <label key={field}>{field}<input aria-label={`${name} ${field}`} type="number" step="any" value={parameter[field]} onChange={(event) => {
-            if (!event.target.value || !Number.isFinite(event.target.valueAsNumber)) return;
-            const next = { ...parameter, [field]: event.target.valueAsNumber };
+          <div className="math-range">{(["min", "value", "max"] as const).map((field) => <label key={field}>{field}<NumberField ariaLabel={`${name} ${field}`} step="any" value={parameter[field]} min={field === "min" ? undefined : parameter.min} max={field === "max" ? undefined : parameter.max} onChange={(n) => {
+            const next = { ...parameter, [field]: n };
             if (next.min < next.max) change({ ...next, value: Math.max(next.min, Math.min(next.max, next.value)) });
           }} /></label>)}</div></div>;
       })}</div>
