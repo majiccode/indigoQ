@@ -46,4 +46,5 @@ if (process.platform === "win32") {
   run("tar", ["-czf", path.join(root, "dist", `${name}.tar.gz`), "-C", path.dirname(bundle), name]);
 }
 if (args.has("--desktop")) run(pnpm, ["exec", "electron-builder", "--publish", "never"], root, { CSC_IDENTITY_AUTO_DISCOVERY: "false" });
+if (args.has("--desktop") && process.platform === "darwin") run(process.execPath, ["scripts/verify-mac.mjs"]);
 console.log(`Built indigoQ ${version} for ${process.platform}/${process.arch} in dist/`);

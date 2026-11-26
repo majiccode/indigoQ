@@ -14,10 +14,36 @@ Ollama and its models are optional and installed separately.
   or extract the desktop tar.gz and run `indigoq-desktop`.
   Ubuntu 22.04 or newer (or a compatible glibc-based distribution) is recommended.
 
-These initial builds are **unsigned**. On macOS, if Gatekeeper blocks launch,
+Mac builds from **v0.1.1** have an ad-hoc signature for bundle integrity but are
+**not Apple Developer ID signed or notarized**. Windows builds are unsigned.
+On macOS, if Gatekeeper blocks launch,
 try launching once, then use **System Settings → Privacy & Security → Open Anyway**.
 On Windows, SmartScreen may show **More info → Run anyway**. Use these overrides
 only for downloads you trust from this repository. No automatic updates are installed.
+
+### macOS says the application is damaged
+
+The v0.1.0 desktop downloads had an invalid Mac app signature. Delete that copy,
+download **v0.1.1 or later**, and copy the app from the DMG to Applications.
+For an M1/M2/M3/M4 Mac, select the **mac-arm64** DMG, not mac-x64.
+Then try launching and use **Privacy & Security → Open Anyway** if prompted.
+
+If macOS still blocks a freshly downloaded, trusted copy, check its integrity in Terminal:
+
+```sh
+codesign --verify --deep --strict --verbose=2 /Applications/indigoQ.app
+```
+
+If verification succeeds but Gatekeeper still reports it as damaged, you can remove
+the download quarantine attribute from this app only, then launch it:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/indigoQ.app
+open /Applications/indigoQ.app
+```
+
+Only do this for a verified download you trust from the release page. If signature
+verification fails, download a fresh copy rather than bypassing that failure.
 
 The desktop app starts a loopback-only server on an available port and stops it
 when the app quits. A regular window close on macOS leaves the app running; use Quit.
