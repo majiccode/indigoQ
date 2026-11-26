@@ -38,6 +38,7 @@ async def generate(body: GenerateRequest, request: Request) -> StreamingResponse
         "system": body.system,
         "stream": True,
         "options": {"temperature": body.temperature},
+        "images": body.images,
     }
     if body.jsonOutput:
         payload["format"] = "json"

@@ -15,7 +15,7 @@ export async function fetchModels(signal?: AbortSignal): Promise<string[]> {
 }
 
 export async function generateText(
-  body: { model: string; prompt: string; system: string; temperature: number; jsonOutput: boolean },
+  body: { model: string; prompt: string; system: string; temperature: number; jsonOutput: boolean; images?: string[] },
   signal: AbortSignal,
   onChunk: (text: string) => void,
 ) {

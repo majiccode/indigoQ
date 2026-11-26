@@ -126,6 +126,52 @@ Try these connections:
 The TextEditor toolbar also offers **Import text…** for incoming text connections.
 This explicitly replaces the current draft with a snapshot of the chosen output.
 
+## Studio workspace collection
+
+Fourteen additional mini-apps are available from the workspace type picker:
+
+| Workspace | Working features and connections |
+|---|---|
+| **Shared Controls** | Named numeric sliders, toggles, selects, colors, text, and trigger buttons. Edit definitions as JSON. Connect to Math Lab, Simulation, Audio, Playground, Dashboard, or a recording Timeline. |
+| **Simulation Lab** | Spring, pendulum, orbit, predator/prey, and epidemic simulations; play/pause, time scrubber, draggable initial displacement for spring/pendulum. **Capture data** publishes a table. |
+| **Timeline / Sequencer** | Linear numeric parameter tracks, looping, scrubbing, and 10 Hz recording of incoming controls into a table. **Reset / release controls** returns control to connected manual knobs. |
+| **HTML Playground** | HTML/CSS/JavaScript editor and sandboxed iframe. **Run preview** executes the current document. Import generated HTML from Ollama/TextEditor. Connected controls/data arrive as `indigoq:input` events. `indigoQ.publish({text, table: {columns, rows}})` offers output; **Accept output** publishes it to the graph. |
+| **Audio / Signal Lab** | Sine/square/triangle/sawtooth and connected-equation waveforms, live frequency/gain/cutoff, enabled toggle, low-pass filter, oscilloscope/spectrum, synth recording, and connected audio-file playback. Start and recording require explicit clicks. |
+| **HTTP / API Client** | HTTP methods, headers/body, response status/headers/timing, cancellation, and explicitly started periodic refresh. Responses publish text and, where possible, a table. Requests run through the backend; redirects are returned rather than followed. |
+| **Transform** | JSON-path extraction (`$.items[0].name`), array filtering by field substring, per-record templates (`{{field}}`), regex extraction in a time-limited worker. Run explicitly to publish text/table results. |
+| **SQL Explorer** | Read-only SQLite queries against connected `input1`, `input2`, … tables. Joins, grouping, and aggregates. Isolated backend memory database, 3-second query limit, 10,000 output rows. |
+| **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
+| **Diff / Compare** | Two local or connected text sources, JSON formatting, line-level additions/removals, and publish-right-side action. |
+| **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces; connect to a vision-capable Ollama model. |
+| **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
+| **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
+| **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
+
+### Live controls and saved outputs
+
+Live controls travel immediately within the current page; they do not wait for an
+API roundtrip. Saved control values are included in graph JSON. Matching control
+names override local parameters. Timeline playback overrides connected control
+values until released. Frame-by-frame playback is transient; Save JSON captures
+the timeline position. Playback, sound, polling, model calls, and SQL/HTTP requests
+never auto-start on graph load.
+
+Manual result-producing actions (simulation capture, SQL, transform, model runs,
+image publish, playground accept) publish persistent snapshots. Downstream Data
+Table imports remain explicit. Live control updates across separate browser tabs
+are not synchronized frame-by-frame.
+
+Three additional header examples cover the collection:
+
+- **Interactive Studio:** shared controls → simulation, Math Lab, and HTML spring;
+  timeline animation, captured samples, audio synth, and dashboard.
+- **Data Workbench:** JSON → Transform → SQL aggregation → Dashboard, plus HTTP,
+  a Markdown/math report, and JSON comparison.
+- **Research & Media:** notes → Knowledge Library → Ollama, model benchmarking,
+  image editing → vision model, and a research dashboard.
+
+Each includes a Start here workspace. Use workspace fullscreen for comfortable editing.
+
 ## Persistence
 
 ### Save, load, and examples

@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.models import Graph
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "frontend" / "public" / "examples"
 
@@ -15,9 +16,8 @@ def test_examples_import_roundtrip_and_replacement(tmp_path: Path) -> None:
         response = client.post("/api/graph/import", json=graph)
         assert response.status_code == 200, response.text
         loaded = client.get("/api/graph").json()
-        for expected, actual in zip(graph["workspaces"], loaded["workspaces"], strict=True):
-            for key, value in expected.items():
-                assert actual[key] == value
+        normalized = Graph.model_validate(graph).model_dump(mode="json")
+        assert loaded["workspaces"] == normalized["workspaces"]
         assert loaded["wires"] == graph["wires"]
         assert client.post("/api/graph/import", json=graph).status_code == 200
 

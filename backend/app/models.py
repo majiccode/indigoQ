@@ -7,6 +7,22 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 PortSide = Literal["top", "right", "bottom", "left"]
+StudioKind = Literal[
+    "controls",
+    "simulation",
+    "playground",
+    "audio-lab",
+    "http-client",
+    "transform",
+    "document-preview",
+    "diff",
+    "image-studio",
+    "sql",
+    "model-bench",
+    "knowledge",
+    "timeline",
+    "dashboard",
+]
 
 
 class ApiModel(BaseModel):
@@ -42,7 +58,7 @@ class Workspace(ApiModel):
     type: str | None = Field(default=None, max_length=80)
     contents: list[ContentEntry] = Field(default_factory=list, max_length=1000)
     editor: EditorDocument | None = None
-    tool: MathState | TableState | OllamaState | None = None
+    tool: MathState | TableState | OllamaState | StudioState | None = None
 
 
 class Parameter(ApiModel):
@@ -102,6 +118,16 @@ class GenerateRequest(ApiModel):
     system: str = Field(default="", max_length=100_000)
     temperature: float = Field(default=0.7, ge=0, le=2)
     jsonOutput: bool = False
+    images: list[str] = Field(default_factory=list, max_length=10)
+
+
+class StudioState(ApiModel):
+    kind: StudioKind
+    settings: dict[str, str | float | bool] = Field(default_factory=dict, max_length=100)
+    text: str = Field(default="", max_length=5_000_000)
+    output: str = Field(default="", max_length=5_000_000)
+    table: TableState | None = None
+    files: list[ContentEntry] = Field(default_factory=list, max_length=100)
 
 
 class EditorDocument(ApiModel):
@@ -112,7 +138,7 @@ class EditorDocument(ApiModel):
 
 
 class WorkspaceTypeRequest(ApiModel):
-    type: Literal["content-source", "text-editor", "math-lab", "data-table", "ollama"]
+    type: Literal["content-source", "text-editor", "math-lab", "data-table", "ollama"] | StudioKind
 
 
 class OpenDocumentRequest(ApiModel):

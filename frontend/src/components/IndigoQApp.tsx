@@ -9,6 +9,9 @@ const EXAMPLES = [
   { file: "oscillator-lab", name: "Oscillator Lab", description: "Editor equations → live knobs and plots → sampled table." },
   { file: "measurements", name: "Measured vs. Model", description: "CSV files → editable table → scatter overlay on a mathematical model." },
   { file: "local-ai", name: "Local AI Studio", description: "Ollama → editable equations → Math Lab, plus JSON extraction → Data Table." },
+  { file: "interactive-studio", name: "Interactive Studio", description: "Shared controls, simulations, timeline, HTML playground, audio, and dashboard." },
+  { file: "data-workbench", name: "Data Workbench", description: "HTTP, JSON transforms, SQL aggregation, Markdown reports, and comparisons." },
+  { file: "research-media", name: "Research & Media", description: "Document retrieval, model comparisons, image editing, and local vision AI." },
 ];
 
 function BrandMark() {
@@ -43,6 +46,7 @@ export default function IndigoQApp() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
+  const about = useRef<HTMLDialogElement>(null);
   const onReady = useCallback(() => setReady(true), []);
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setMessage(""); setError(false);
@@ -59,7 +63,7 @@ export default function IndigoQApp() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand">
+        <button type="button" className="brand" aria-label="About indigoQ" onClick={() => about.current?.showModal()}>
           <BrandMark />
           <div className="brand-copy">
             <span className="brand-name">
@@ -67,7 +71,7 @@ export default function IndigoQApp() {
             </span>
             <span className="brand-sub">workspace canvas</span>
           </div>
-        </div>
+        </button>
         <div className="topbar-meta">
           <nav className="graph-file-actions" aria-label="Graph files" onKeyDown={(event) => { if (event.key === "Escape") setExamplesOpen(false); }}>
             <button title="Replace the current canvas with a saved JSON graph" disabled={!ready || busy} onClick={() => fileInput.current?.click()}>Load JSON</button>
@@ -99,6 +103,12 @@ export default function IndigoQApp() {
           }} />
         </div>
       </header>
+      <dialog ref={about} className="about-dialog" aria-labelledby="about-title" onClick={(event) => { if (event.target === event.currentTarget) about.current?.close(); }}>
+        <div className="about-dialog-content"><button type="button" className="about-close" aria-label="Close about indigoQ" onClick={() => about.current?.close()}>×</button>
+          <BrandMark /><h2 id="about-title">indigoQ</h2><p>© {new Date().getFullYear()} Paul Adams</p>
+          <a href="https://github.com/majiccode" target="_blank" rel="noopener noreferrer">github.com/majiccode ↗</a>
+        </div>
+      </dialog>
       {(message || busy) && <div className={`graph-file-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}><span>{busy ? "Working…" : message}</span>{!busy && <button aria-label="Dismiss message" onClick={() => setMessage("")}>×</button>}</div>}
       <CanvasBoard ref={board} onReady={onReady} />
     </div>

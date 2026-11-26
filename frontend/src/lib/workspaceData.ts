@@ -1,5 +1,6 @@
 import type { ContentEntry, Graph, TableState, Workspace } from "./types";
 import { parseMath } from "./mathEngine";
+import { parseControls, savedControls } from "./studio";
 
 export function stripFence(text: string) {
   return text.trim().replace(/^```[^\n]*\n/, "").replace(/\n```\s*$/, "");
@@ -52,16 +53,21 @@ export function workspaceText(workspace: Workspace): string {
   if (workspace.tool?.kind === "ollama") return workspace.tool.output;
   if (workspace.tool?.kind === "data-table") return tableCSV(workspace.tool);
   if (workspace.tool?.kind === "math-lab") return workspace.tool.expressions;
+  if (workspace.tool?.kind === "controls") {
+    try { return JSON.stringify(Object.fromEntries(parseControls(workspace.tool.text).map((control) => [control.name, control.value])), null, 2); } catch { return workspace.tool.output; }
+  }
+  if (workspace.tool && "output" in workspace.tool) return workspace.tool.output;
   return "";
 }
 
 export function workspaceTable(workspace: Workspace, graph: Graph): TableState | null {
   if (workspace.tool?.kind === "data-table") return workspace.tool;
+  if (workspace.tool && "table" in workspace.tool) return workspace.tool.table ?? null;
   if (workspace.tool?.kind !== "math-lab") return null;
   const state = workspace.tool;
   const source = graph.workspaces.find((item) => item.id === state.sourceId && item.type !== "math-lab" && graph.wires.some((wire) => wire.source === item.id && wire.target === workspace.id));
   const parsed = parseMath(source ? workspaceText(source) : state.expressions);
-  const scope = Object.fromEntries(Object.entries(parsed.parameters).map(([name, value]) => [name, state.parameters[name]?.value ?? value]));
+  const scope = { ...Object.fromEntries(Object.entries(parsed.parameters).map(([name, value]) => [name, state.parameters[name]?.value ?? value])), ...Object.fromEntries(Object.entries(savedControls(graph, workspace.id)).filter(([, value]) => typeof value === "number")) } as Record<string, number>;
   const [min, max] = state.bounds;
   return {
     kind: "data-table", columns: ["x", ...parsed.curves.map((_, i) => `y${i + 1}`)],
@@ -73,6 +79,10 @@ export function workspaceTable(workspace: Workspace, graph: Graph): TableState |
       })];
     }),
   };
+}
+
+export function workspaceFiles(workspace: Workspace): ContentEntry[] {
+  return [...workspace.contents, ...(workspace.tool && "files" in workspace.tool ? workspace.tool.files ?? [] : [])];
 }
 
 export async function fileText(file: ContentEntry) {

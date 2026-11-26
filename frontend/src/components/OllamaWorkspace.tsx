@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import type { OllamaState } from "@/lib/types";
-import { fileText, downloadText, workspaceText } from "@/lib/workspaceData";
+import { fileText, downloadText, workspaceFiles, workspaceText } from "@/lib/workspaceData";
 import { fetchModels, generateText } from "@/lib/ollamaApi";
 import { useToolState } from "./useToolState";
 
@@ -44,15 +44,18 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
     let output = "", context = "";
     try {
       const sections: string[] = [];
+      const images: string[] = [];
       for (const source of sources.filter((item) => state.sourceIds.includes(item.id))) {
-        if (source.type === "content-source") {
-          for (const file of source.contents) sections.push(`--- ${source.name} / ${file.name} ---\n${await fileText(file)}`);
-        } else sections.push(`--- ${source.name} ---\n${workspaceText(source)}`);
+        const text = workspaceText(source); if (text) sections.push(`--- ${source.name} ---\n${text}`);
+        for (const file of workspaceFiles(source)) {
+          if (file.mimeType.startsWith("image/")) { images.push(file.dataUrl.split(",")[1]); sections.push(`--- Image: ${source.name} / ${file.name} ---`); }
+          else sections.push(`--- ${source.name} / ${file.name} ---\n${await fileText(file)}`);
+        }
       }
       context = sections.join("\n\n");
       if (context.length > 1000000) throw new Error("Connected context exceeds 1 million characters. Select fewer sources.");
       if (abort.signal.aborted) return;
-      output = await generateText({ model, system: state.system, prompt: state.prompt + (context ? `\n\n<workspace-context>\n${context}\n</workspace-context>` : ""), temperature: state.temperature, jsonOutput: state.jsonOutput }, abort.signal, (text) => { output = text; if (active.current) setLiveOutput(text); });
+      output = await generateText({ model, system: state.system, prompt: state.prompt + (context ? `\n\n<workspace-context>\n${context}\n</workspace-context>` : ""), temperature: state.temperature, jsonOutput: state.jsonOutput, images }, abort.signal, (text) => { output = text; if (active.current) setLiveOutput(text); });
     } catch (reason) {
       if (active.current) setError(abort.signal.aborted ? "Stopped. Partial output retained." : (reason as Error).message);
     } finally {
@@ -79,7 +82,7 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
       <div className="tool-toolbar"><strong>Output</strong><button disabled={busy || !state.output} onClick={() => downloadText(state.jsonOutput ? "response.json" : "response.txt", state.output)}>Save output ↓</button><button disabled={busy || !state.output} onClick={() => { void navigator.clipboard.writeText(state.output).catch(() => setError("Clipboard unavailable; use Save output")); }}>Copy</button></div>
       <pre className="ollama-output" aria-label="Model output" aria-busy={busy}>{liveOutput ?? (state.output || "Your model’s response will appear here.")}</pre>
       <details className="tool-details"><summary>Context snapshot from last run · {state.context.length.toLocaleString()} chars</summary><pre>{state.context || "No connected context was used."}</pre></details>
-      <small className="tool-hint">Wire this workspace → Math Lab, Data Table, or TextEditor to use the completed output.</small>
+      <small className="tool-hint">Wire this workspace → Math Lab, Data Table, TextEditor, or HTML Playground to use the completed output. Connected images require a vision-capable model.</small>
     </div><footer className="tool-footer" role="status">{busy ? "Generating…" : status} · {state.output.length.toLocaleString()} output chars</footer>
   </div>;
 }

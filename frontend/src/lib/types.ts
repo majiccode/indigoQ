@@ -62,7 +62,16 @@ export interface OllamaState {
   sourceIds: string[];
 }
 
-export type ToolState = MathState | TableState | OllamaState;
+export type StudioKind = "controls" | "simulation" | "playground" | "audio-lab" | "http-client" | "transform" | "document-preview" | "diff" | "image-studio" | "sql" | "model-bench" | "knowledge" | "timeline" | "dashboard";
+export interface StudioState {
+  kind: StudioKind;
+  settings: Record<string, string | number | boolean>;
+  text: string;
+  output: string;
+  table?: TableState | null;
+  files?: ContentEntry[];
+}
+export type ToolState = MathState | TableState | OllamaState | StudioState;
 
 export interface EditorDocument {
   text: string;

@@ -14,6 +14,9 @@ const { compileExpression, parseMath } = load("mathEngine");
 const { parseTable, tableCSV, workspaceTable } = load("workspaceData");
 const { parseGraphFile, serializeGraph } = load("graphFile");
 const { registerWorkspaceFlush, flushWorkspaces } = load("workspaceFlush");
+const { parseControls, savedControls, selectPath, searchPassages } = load("studio");
+const { simulate } = load("simulation");
+const { diffLines } = load("textDiff");
 
 test("math precedence, powers, functions, and named parameters", () => {
   assert.equal(compileExpression("-2^2 + 2^3^2")({}), 508);
@@ -61,7 +64,7 @@ test("Math Lab publishes sampled tables using connected equations and knob overr
 });
 
 test("graph files roundtrip complete examples and accept raw API/store JSON", () => {
-  for (const name of ["oscillator-lab", "measurements", "local-ai"]) {
+  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media"]) {
     const text = fs.readFileSync(new URL(`../public/examples/${name}.json`, import.meta.url), "utf8");
     const graph = parseGraphFile(text);
     assert.deepEqual(parseGraphFile(serializeGraph(graph)), graph);
@@ -76,6 +79,38 @@ test("graph files roundtrip complete examples and accept raw API/store JSON", ()
   assert.throws(() => parseGraphFile("{"), /valid JSON/);
   assert.throws(() => parseGraphFile('{"format":"indigoq","version":99}'), /Unsupported/);
   assert.throws(() => parseGraphFile('{"workspaces":[]}'), /workspaces and wires/);
+});
+
+test("shared control definitions, timeline overrides, and cyclic connections", () => {
+  assert.throws(() => parseControls('[{"name":"x","type":"number","value":1,"min":2,"max":1}]'), /min/);
+  assert.throws(() => parseControls('[{"name":"a","type":"text","value":"x"},{"name":"a","type":"text","value":"y"}]'), /unique/);
+  const graph = { workspaces: [
+    { id: "timeline", tool: { kind: "timeline", output: '{"amplitude":4}' } },
+    { id: "controls", tool: { kind: "controls", text: '[{"name":"amplitude","type":"number","value":2,"min":0,"max":5}]' } },
+    { id: "plot", type: "math-lab", tool: { kind: "math-lab", expressions: "amplitude=1\ny=amplitude*x", sourceId: "", parameters: {}, bounds: [0, 1, -5, 5] } },
+  ], wires: [{ source: "timeline", target: "controls" }, { source: "controls", target: "plot" }, { source: "controls", target: "controls" }] };
+  assert.equal(savedControls(graph, "plot").amplitude, 4);
+  assert.deepEqual(workspaceTable(graph.workspaces[2], graph).rows[200], ["1", "4"]);
+});
+
+test("simulations remain finite and damping removes spring energy", () => {
+  const rows = simulate("spring", 20, { amplitude: 2, frequency: 1.5, damping: 0.5 });
+  assert.ok(Math.abs(rows.at(-1)[1]) < 0.1);
+  for (const mode of ["pendulum", "orbit", "population", "epidemic"]) {
+    const result = simulate(mode, 20, {});
+    assert.ok(result.every((row) => row.every(Number.isFinite)));
+    assert.equal(result[0][0], 0);
+    assert.equal(result.at(-1)[0], 20);
+  }
+});
+
+test("JSON paths, ranked source passages, and line diffs", () => {
+  assert.equal(selectPath({ results: [{ value: 3 }] }, "$.results[0].value"), 3);
+  assert.throws(() => selectPath({}, "constructor"), /Missing/);
+  const passages = searchPassages([{ name: "physics", workspaceId: "one", text: "Damping affects resonance." }, { name: "other", workspaceId: "two", text: "A cooking recipe." }], "damping resonance");
+  assert.equal(passages[0].workspaceId, "one");
+  assert.equal(passages[0].score, 2);
+  assert.deepEqual(diffLines("a\nb", "a\nc").filter((line) => line.kind !== "same").map((line) => [line.kind, line.text]), [["add", "c"], ["remove", "b"]]);
 });
 
 test("graph export flush waits for all registered pending drafts", async () => {

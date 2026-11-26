@@ -17,9 +17,14 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.44.1",
     "@lezer/highlight": "^1.2.5",
+    "katex": "^0.19.1",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import type { MathState } from "@/lib/types";
 import { parseMath } from "@/lib/mathEngine";
-import { downloadText, workspaceText } from "@/lib/workspaceData";
+import { downloadText, workspaceTable, workspaceText } from "@/lib/workspaceData";
+import { connectedControls, useLiveRevision } from "@/lib/studioRuntime";
 import { useToolState } from "./useToolState";
 
 const EXAMPLE = "amplitude = 2\nfrequency = 1.5\ndamping = 0.15\n\ny = amplitude * exp(-damping * abs(x)) * sin(frequency * x)\ny = amplitude * cos(frequency * x)";
@@ -20,7 +21,9 @@ export default function MathLabWorkspace({ workspace, graph, onOperation }: Type
   const source = sources.find((item) => item.id === state.sourceId);
   const expressions = source ? workspaceText(source) : state.expressions;
   const parsed = parseMath(expressions);
-  const scope = Object.fromEntries(Object.entries(parsed.parameters).map(([name, value]) => [name, state.parameters[name]?.value ?? value]));
+  useLiveRevision();
+  const controls = connectedControls(graph, workspace.id);
+  const scope = { ...Object.fromEntries(Object.entries(parsed.parameters).map(([name, value]) => [name, state.parameters[name]?.value ?? value])), ...Object.fromEntries(Object.entries(controls).filter(([, value]) => typeof value === "number")) } as Record<string, number>;
   const [xmin, xmax, ymin, ymax] = state.bounds;
   const px = (x: number) => (x - xmin) / (xmax - xmin) * 800;
   const py = (y: number) => 400 - (y - ymin) / (ymax - ymin) * 400;
@@ -39,8 +42,7 @@ export default function MathLabWorkspace({ workspace, graph, onOperation }: Type
     return { ...curve, path, points };
   });
   const tables = connectedWorkspaces(graph, workspace.id, "incoming", "table");
-  const table = tables.find((item) => item.tool?.kind === "data-table")?.tool;
-  const data = table?.kind === "data-table" ? table : null;
+  const data = tables.flatMap((item) => { const table = workspaceTable(item, graph); return table ? [table] : []; })[0] ?? null;
   const xIndex = Math.max(0, data?.columns.indexOf(state.xColumn) ?? 0);
   const yIndex = state.yColumn ? data?.columns.indexOf(state.yColumn) ?? 1 : 1;
   const scatter = data?.rows.flatMap((row) => {
@@ -67,6 +69,7 @@ export default function MathLabWorkspace({ workspace, graph, onOperation }: Type
       {state.sourceId && !source && <p className="tool-warning">Equation source is disconnected. Showing local equations.</p>}
       <textarea className="math-expressions" aria-label="Math expressions" value={expressions} readOnly={!!source} spellCheck={false} onChange={(event) => update({ ...state, expressions: event.target.value, parameters: {} })} />
       <small className="tool-hint">One equation per line. Use x, pi, e, sin, cos, exp, sqrt, abs, log and ^. Use * for multiplication.</small>
+      {!!Object.keys(controls).length && <small className="tool-hint">Connected controls override matching parameters: {Object.entries(controls).filter(([, value]) => typeof value === "number").map(([name, value]) => `${name}=${Number(Number(value).toFixed(3))}`).join(" · ")}</small>}
       {!!parsed.errors.length && <div className="tool-error" role="alert">{parsed.errors.map((error) => <div key={error}>{error}</div>)}</div>}
       <div className="math-parameters">{Object.entries(parsed.parameters).map(([name, initial]) => {
         const radius = Math.max(1, Math.abs(initial) * 2);

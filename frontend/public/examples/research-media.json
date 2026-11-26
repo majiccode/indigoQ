@@ -1,0 +1,23 @@
+{
+  "format":"indigoq","version":1,
+  "graph":{
+    "workspaces":[
+      {"id":"research-guide","name":"Start here — Research & Media","type":"text-editor","x":0,"y":0,"width":450,"height":550,"contents":[],"editor":{"name":"README.txt","sourceWorkspaceId":null,"sourceFileId":null,"text":"RESEARCH & MEDIA\n\n1. Search Library retrieves passages from Research Notes. Try damping or resonance.\n2. Source links return to the original workspace.\n3. Research Assistant has the library selected as context. Search first, then choose a local model and Run.\n4. Model Comparison sends one prompt to selected local models at several temperatures. Rate the responses, then import results into Data Table or SQL.\n5. Image Editor accepts a local image: crop, resize, change brightness/contrast/saturation, add annotation, and Publish PNG.\n6. Vision Assistant can describe that published image; select a vision-capable model.\n7. Dashboard displays notes and the published image.\n\nNo model requests run automatically on load. The library uses local keyword-ranked passages, not embeddings. Benchmark runs are sequential."}},
+      {"id":"research-notes","name":"Research Notes","type":"text-editor","x":550,"y":0,"width":480,"height":500,"contents":[],"editor":{"name":"oscillators.md","sourceWorkspaceId":null,"sourceFileId":null,"text":"# Oscillators\n\nDamping removes energy from a vibrating system. A damped spring eventually returns to equilibrium. Increasing the damping coefficient generally reduces the amplitude more rapidly.\n\nResonance occurs when a periodic drive is close to a system's natural frequency. Even a modest force can produce large oscillations when damping is weak.\n\nA pendulum is approximately harmonic at small angles. At larger amplitudes its period depends on the amplitude.\n\nMeasurements should be compared with models using the same units, sampling interval, and initial conditions."}},
+      {"id":"research-library","name":"Search Library","type":"knowledge","x":1130,"y":0,"width":500,"height":550,"contents":[],"tool":{"kind":"knowledge","settings":{},"text":"damping resonance","output":""}},
+      {"id":"research-assistant","name":"Research Assistant","type":"ollama","x":1730,"y":0,"width":530,"height":650,"contents":[],"tool":{"kind":"ollama","model":"","prompt":"Explain how damping affects resonance. Cite the numbered source passages supplied in the context.","system":"Answer using the supplied source passages. Cite sources by number and distinguish facts from inference.","temperature":0.3,"jsonOutput":false,"output":"","context":"","sourceIds":["research-library"]}},
+      {"id":"research-bench","name":"Model Comparison","type":"model-bench","x":550,"y":750,"width":700,"height":650,"contents":[],"tool":{"kind":"model-bench","settings":{"temperatures":"0.2,0.8"},"text":"Explain damping to a curious 12-year-old in three sentences, using one analogy.","output":""}},
+      {"id":"research-image","name":"Image Editor","type":"image-studio","x":1350,"y":800,"width":550,"height":650,"contents":[],"tool":{"kind":"image-studio","settings":{},"text":"My experiment","output":""}},
+      {"id":"research-vision","name":"Vision Assistant","type":"ollama","x":2000,"y":800,"width":530,"height":650,"contents":[],"tool":{"kind":"ollama","model":"","prompt":"Describe the connected image, including any visible text or measurements.","system":"You are a precise visual assistant.","temperature":0.3,"jsonOutput":false,"output":"","context":"","sourceIds":["research-image"]}},
+      {"id":"research-dashboard","name":"Research Dashboard","type":"dashboard","x":2700,"y":0,"width":700,"height":750,"contents":[],"tool":{"kind":"dashboard","settings":{},"text":"Research board","output":""}}
+    ],
+    "wires":[
+      {"id":"rw1","source":"research-notes","target":"research-library","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"rw2","source":"research-library","target":"research-assistant","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"rw3","source":"research-notes","target":"research-bench","sourcePort":{"side":"bottom","t":0.5},"targetPort":{"side":"top","t":0.5}},
+      {"id":"rw4","source":"research-image","target":"research-vision","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"rw5","source":"research-notes","target":"research-dashboard","sourcePort":{"side":"top","t":0.5},"targetPort":{"side":"top","t":0.5}},
+      {"id":"rw6","source":"research-image","target":"research-dashboard","sourcePort":{"side":"bottom","t":0.5},"targetPort":{"side":"bottom","t":0.5}}
+    ]
+  }
+}

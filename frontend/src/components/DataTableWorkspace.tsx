@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import type { TableState } from "@/lib/types";
-import { downloadText, fileText, parseTable, tableCSV, workspaceTable, workspaceText } from "@/lib/workspaceData";
+import { downloadText, fileText, parseTable, tableCSV, workspaceFiles, workspaceTable, workspaceText } from "@/lib/workspaceData";
 import { compileExpression } from "@/lib/mathEngine";
 import { useToolState } from "./useToolState";
 
@@ -20,7 +20,7 @@ export default function DataTableWorkspace({ workspace, graph, onOperation }: Ty
   const [summary, setSummary] = useState(0);
   const incoming = connectedWorkspaces(graph, workspace.id, "incoming", "text");
   const tables = connectedWorkspaces(graph, workspace.id, "incoming", "table");
-  const files = connectedWorkspaces(graph, workspace.id, "incoming", "files").filter((item) => item.type === "content-source");
+  const files = connectedWorkspaces(graph, workspace.id, "incoming", "files").map((item) => ({ ...item, contents: workspaceFiles(item) }));
   const attempt = async (action: () => void | Promise<void>) => { try { setError(""); await action(); } catch (reason) { setError((reason as Error).message); } };
   const importText = (text: string) => update(parseTable(text));
   const visible = state.rows.map((row, index) => ({ row, index })).filter(({ row }) => row.some((cell) => cell.toLowerCase().includes(filter.toLowerCase())));

@@ -1,0 +1,26 @@
+{
+  "format": "indigoq", "version": 1,
+  "graph": {
+    "workspaces": [
+      { "id": "data-guide", "name": "Start here — Data Workbench", "type": "text-editor", "x": 0, "y": 0, "width": 430, "height": 550, "contents": [], "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "DATA WORKBENCH\n\n1. Source JSON contains sample sales records.\n2. Transform selects $.sales. Click Run transform to publish a table.\n3. SQL Summary aggregates the incoming table by region. Click Run SQL.\n4. Dashboard displays summary and report.\n5. Compare Versions shows a JSON-aware diff of the two text sources.\n6. HTTP Client is configured for the local health API. Click Send, or change URL/headers/body for another service. Its refresh loop only starts explicitly.\n7. Report Preview renders Markdown, tables, and maths from Report Source.\n\nTry connecting HTTP → Transform to extract nested API response data. SQL supports joins: connect additional tables, then refer to input1, input2, etc." } },
+      { "id": "data-json", "name": "Source JSON", "type": "text-editor", "x": 530, "y": 0, "width": 450, "height": 450, "contents": [], "editor": { "name": "sales.json", "sourceWorkspaceId": null, "sourceFileId": null, "text": "{\"sales\":[{\"region\":\"North\",\"amount\":120},{\"region\":\"South\",\"amount\":85},{\"region\":\"North\",\"amount\":60},{\"region\":\"South\",\"amount\":95}]}" } },
+      { "id": "data-transform", "name": "Extract Sales", "type": "transform", "x": 1080, "y": 0, "width": 450, "height": 450, "contents": [], "tool": { "kind": "transform", "settings": { "mode":"path", "path":"$.sales" }, "text":"", "output":"[{\"region\":\"North\",\"amount\":120},{\"region\":\"South\",\"amount\":85},{\"region\":\"North\",\"amount\":60},{\"region\":\"South\",\"amount\":95}]", "table": { "kind":"data-table", "columns":["region","amount"], "rows":[["North","120"],["South","85"],["North","60"],["South","95"]] } } },
+      { "id": "data-sql", "name": "SQL Summary", "type": "sql", "x": 1630, "y": 0, "width": 520, "height": 500, "contents": [], "tool": { "kind":"sql", "settings":{}, "text":"SELECT region, SUM(amount) AS total, COUNT(*) AS orders FROM input1 GROUP BY region ORDER BY total DESC", "output":"region,total,orders\nNorth,180,2\nSouth,180,2", "table": {"kind":"data-table","columns":["region","total","orders"],"rows":[["North","180","2"],["South","180","2"]]} } },
+      { "id": "data-http", "name": "HTTP Client", "type": "http-client", "x": 530, "y": 650, "width": 450, "height": 500, "contents": [], "tool": {"kind":"http-client","settings":{"url":"http://127.0.0.1:8787/api/health","method":"GET","headers":"{}"},"text":"","output":""} },
+      { "id": "data-report", "name": "Report Source", "type":"text-editor","x":1080,"y":650,"width":450,"height":450,"contents":[],"editor":{"name":"report.md","sourceWorkspaceId":null,"sourceFileId":null,"text":"# Sales experiment\n\nBoth regions have **180** in total sales.\n\n| Region | Total |\n|---|---:|\n| North | 180 |\n| South | 180 |\n\nA simple model: $revenue = price \\times quantity$.\n\nEdit this document to update its connected preview."} },
+      { "id": "data-preview", "name":"Report Preview","type":"document-preview","x":1630,"y":650,"width":520,"height":500,"contents":[],"tool":{"kind":"document-preview","settings":{},"text":"","output":""} },
+      { "id": "data-revised", "name":"Revised JSON","type":"text-editor","x":530,"y":1300,"width":450,"height":350,"contents":[],"editor":{"name":"revised.json","sourceWorkspaceId":null,"sourceFileId":null,"text":"{\"sales\":[{\"region\":\"North\",\"amount\":150},{\"region\":\"South\",\"amount\":85}]}"} },
+      { "id": "data-diff", "name":"Compare Versions","type":"diff","x":1080,"y":1300,"width":700,"height":500,"contents":[],"tool":{"kind":"diff","settings":{"left":"data-json","right":"data-revised","json":true},"text":"","output":""} },
+      { "id": "data-dashboard", "name":"Data Dashboard","type":"dashboard","x":2300,"y":0,"width":700,"height":700,"contents":[],"tool":{"kind":"dashboard","settings":{},"text":"Sales overview","output":""} }
+    ],
+    "wires": [
+      {"id":"dw1","source":"data-json","target":"data-transform","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"dw2","source":"data-transform","target":"data-sql","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"dw3","source":"data-sql","target":"data-dashboard","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.3}},
+      {"id":"dw4","source":"data-report","target":"data-preview","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}},
+      {"id":"dw5","source":"data-report","target":"data-dashboard","sourcePort":{"side":"bottom","t":0.5},"targetPort":{"side":"bottom","t":0.5}},
+      {"id":"dw6","source":"data-json","target":"data-diff","sourcePort":{"side":"bottom","t":0.5},"targetPort":{"side":"top","t":0.3}},
+      {"id":"dw7","source":"data-revised","target":"data-diff","sourcePort":{"side":"right","t":0.5},"targetPort":{"side":"left","t":0.5}}
+    ]
+  }
+}

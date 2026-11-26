@@ -20,12 +20,14 @@ from .models import (
     OllamaState,
     OpenDocumentRequest,
     SaveDocumentRequest,
+    StudioState,
     TableState,
     Workspace,
     WorkspaceTypeRequest,
 )
 from .ollama import router as ollama_router
 from .store import GraphStore
+from .studio import router as studio_router
 
 APP_VERSION = "0.1.0"
 CONTENT_SOURCE_TYPE = "content-source"
@@ -59,6 +61,7 @@ def create_app(data_file: Path | None = None) -> FastAPI:
         max_age=600,
     )
     app.include_router(ollama_router)
+    app.include_router(studio_router)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -181,7 +184,7 @@ def create_app(data_file: Path | None = None) -> FastAPI:
 
     @app.put("/api/workspaces/{workspace_id}/tool", response_model=GraphSnapshot)
     def update_tool(
-        workspace_id: str, state: MathState | TableState | OllamaState
+        workspace_id: str, state: MathState | TableState | OllamaState | StudioState
     ) -> GraphSnapshot:
         def change(graph: Graph) -> None:
             workspace = find_workspace(graph, workspace_id)
