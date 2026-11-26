@@ -52,6 +52,13 @@ export function pointInHeader(workspace: Workspace, point: Point): boolean {
   );
 }
 
+export function pointInWorkspaceMagnify(workspace: Workspace, point: Point, scale: number): boolean {
+  // Match the rightmost 13px icon and its padding in paintWorkspaceHeader.
+  return scale > 0.5 && workspace.width > 240 &&
+    Math.abs(point.x - (workspace.x + workspace.width - 24.5)) <= 12 &&
+    Math.abs(point.y - (workspace.y + HEADER_HEIGHT / 2)) <= 12;
+}
+
 export function normalizeRect(a: Point, b: Point): Rect {
   return {
     x: Math.min(a.x, b.x),

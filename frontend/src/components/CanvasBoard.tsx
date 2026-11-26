@@ -28,6 +28,7 @@ import {
   computeRoute,
   normalizeRect,
   pointInHeader,
+  pointInWorkspaceMagnify,
   screenToWorld,
   workspaceCornerAt,
   worldToScreen,
@@ -858,6 +859,13 @@ export default function CanvasBoard({
       }
 
       const workspace = workspaceAt(graphRef.current.workspaces, world);
+      if (workspace && pointInWorkspaceMagnify(workspace, world, viewport.scale)) {
+        event.preventDefault();
+        selectWorkspace(workspace.id);
+        writeLocalViewport(viewportRef.current);
+        router.push(`/workspace?id=${encodeURIComponent(workspace.id)}`);
+        return;
+      }
       if (workspace) {
         const corner = workspaceCornerAt(workspace, world, viewport.scale);
         if (corner) {
@@ -922,7 +930,7 @@ export default function CanvasBoard({
       modeRef.current = { kind: "create", start: world, current: world };
       canvas.style.cursor = "crosshair";
     },
-    [commitRename, selectWorkspace, focusWorkspaceIdProp],
+    [commitRename, selectWorkspace, focusWorkspaceIdProp, router],
   );
 
   const handlePointerMove = useCallback(
@@ -1034,7 +1042,9 @@ export default function CanvasBoard({
         : EMPTY_HOVER;
 
       const workspace = workspaceAt(graphRef.current.workspaces, world);
-      if (border) {
+      if (workspace && !spaceRef.current && pointInWorkspaceMagnify(workspace, world, viewport.scale)) {
+        canvas.style.cursor = "pointer";
+      } else if (border) {
         canvas.style.cursor = "crosshair";
       } else if (workspace && pointInHeader(workspace, world)) {
         canvas.style.cursor = "grab";
