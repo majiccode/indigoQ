@@ -30,6 +30,7 @@ export interface Workspace extends Rect {
   name: string;
   type: string | null;
   contents: ContentEntry[];
+  autoUpdate?: boolean | null;
   editor?: EditorDocument | null;
   tool?: ToolState | null;
 }
@@ -62,7 +63,7 @@ export interface OllamaState {
   sourceIds: string[];
 }
 
-export type StudioKind = "controls" | "simulation" | "playground" | "audio-lab" | "http-client" | "transform" | "document-preview" | "diff" | "image-studio" | "sql" | "model-bench" | "knowledge" | "timeline" | "dashboard" | "chart-studio";
+export type StudioKind = "controls" | "simulation" | "playground" | "audio-lab" | "http-client" | "transform" | "document-preview" | "diff" | "image-studio" | "sql" | "model-bench" | "knowledge" | "timeline" | "dashboard" | "chart-studio" | "speech-to-text";
 export interface StudioState {
   kind: StudioKind;
   settings: Record<string, string | number | boolean>;

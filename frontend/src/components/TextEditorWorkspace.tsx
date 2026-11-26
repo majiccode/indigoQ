@@ -14,6 +14,8 @@ import { workspaceText } from "@/lib/workspaceData";
 import { registerWorkspaceFlush } from "@/lib/workspaceFlush";
 import { detectSelectionTokens, type SelectionToken } from "@/lib/selectionEditors";
 import SelectionEditors from "./SelectionEditors";
+import { useSpeechInput } from "./useSpeechInput";
+import { appendSpeech } from "@/lib/speech";
 
 const EXAMPLE = `// A living document. Select a value to shape it.\n\nconst signal = {\n  frequency: 220,\n  amplitude: 0.65,\n  phase: 0.25,\n};\n\n// Tune the curve with the controls below.\nconst envelope = {\n  attack: 0.12,\n  decay: 0.45,\n  sustain: 0.7,\n  release: 1.2,\n};\n\nconst points = [0.2, 0.85, 0.4, 0.65, 0.3];\n\n// Select these values for colour wheels, toggles, dials and XY pads.\nconst accent = "#c8a4ff";\nconst overlay = "rgba(200, 164, 255, 0.8)";\nconst tint = "hsv(264, 36%, 100%)";\nconst enabled = true;\nconst spacing = "24px";\nconst rotation = "45deg";\nconst position = { x: 10, y: 20 };\nconst anchor = [0.2, 0.8];\n\n// Wire a FileWorkspace → here to open a file.\n// Wire here → a FileWorkspace to save your document.\n`;
 
@@ -162,6 +164,13 @@ export default function TextEditorWorkspace({ workspace, graph, onOperation }: T
       viewRef.current = null;
     };
   }, []);
+
+  useSpeechInput(graph, workspace.id, (phrase) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const insert = appendSpeech(view.state.doc.toString(), phrase).slice(view.state.doc.length);
+    view.dispatch({ changes: { from: view.state.doc.length, insert }, userEvent: "input.speech" });
+  }, workspace.autoUpdate !== false);
 
   const flushDraft = async () => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }

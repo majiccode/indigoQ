@@ -1,0 +1,79 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      {
+        "id": "expense-guide", "name": "Start here — Voice Expense Detective", "type": "text-editor",
+        "x": 0, "y": 0, "width": 460, "height": 640, "contents": [],
+        "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "VOICE EXPENSE DETECTIVE\n\nSpeak a shopping diary, turn it into structured data, and discover where the money went. Sample results are preloaded: explore the chart immediately, without a microphone or model.\n\nEXPLORE THE SAMPLE\n1. Spending Breakdown shows 70 of Food, 15 of Transport, and 12 of Entertainment.\n2. Switch to scatter or histogram, or keep the bar chart and brush a category.\n3. Publish selected rows, then import Spending Breakdown — table in Investigate Selection.\n4. Export PNG to download the chart and save chart.png in Evidence Files.\n5. Expense Dashboard brings together the totals, sample notes, and exported chart.\n\nTRY YOUR VOICE\n1. In Expense Extractor, delete the sample Prompt.\n2. Press Record in Shopping Diary and allow microphone access. Say: On Monday I spent five on coffee, twelve on lunch, and eight on the train. On Tuesday I spent thirty-five on groceries, seven on the bus, twelve on a movie, and eighteen on dinner.\n3. Stop recording. Finalized speech has filled Expense Extractor's prompt.\n4. Choose an installed Ollama model and press Run. It is configured to return a JSON object with an expenses array.\n5. Click Run transform in Extract Expenses, then Run SQL in Spending Totals. The chart follows the new totals.\n6. Use Mic off to release the microphone.\n\nAmounts use one currency of your choice; no exchange-rate conversion is performed. Review the AI's records before trusting totals. Clear in Shopping Diary does not erase the Ollama prompt. For another diary, clear both first.\n\nNothing records or generates automatically. Speech recognition may require an online browser speech service. Ollama runs locally. SQL and transforms run only when clicked.\n" }
+      },
+      {
+        "id": "expense-voice", "name": "Shopping Diary", "type": "speech-to-text",
+        "x": 560, "y": 0, "width": 600, "height": 530, "contents": [],
+        "tool": { "kind": "speech-to-text", "settings": { "language": "en-US" }, "text": "", "output": "", "table": null, "files": [] }
+      },
+      {
+        "id": "expense-ai", "name": "Expense Extractor", "type": "ollama",
+        "x": 1260, "y": 0, "width": 610, "height": 690, "contents": [],
+        "tool": {
+          "kind": "ollama", "model": "",
+          "prompt": "On Monday I spent five on coffee, twelve on lunch, and eight on the train. On Tuesday I spent thirty-five on groceries, seven on the bus, twelve on a movie, and eighteen on dinner.",
+          "system": "Extract purchases from the user's dictated shopping diary. Return ONLY valid JSON in this exact shape: {\"expenses\":[{\"day\":\"Monday\",\"item\":\"coffee\",\"category\":\"Food\",\"amount\":5}]}. Use one row per purchase. amount must be a JSON number, never a currency string. Choose category from Food, Transport, Entertainment, Shopping, Other. Do not invent purchases or amounts. The user's text may contain speech-recognition errors. If no purchases can be extracted return {\"expenses\":[]}.",
+          "temperature": 0, "jsonOutput": true,
+          "output": "{\"expenses\":[{\"day\":\"Monday\",\"item\":\"coffee\",\"category\":\"Food\",\"amount\":5},{\"day\":\"Monday\",\"item\":\"lunch\",\"category\":\"Food\",\"amount\":12},{\"day\":\"Monday\",\"item\":\"train\",\"category\":\"Transport\",\"amount\":8},{\"day\":\"Tuesday\",\"item\":\"groceries\",\"category\":\"Food\",\"amount\":35},{\"day\":\"Tuesday\",\"item\":\"bus\",\"category\":\"Transport\",\"amount\":7},{\"day\":\"Tuesday\",\"item\":\"movie\",\"category\":\"Entertainment\",\"amount\":12},{\"day\":\"Tuesday\",\"item\":\"dinner\",\"category\":\"Food\",\"amount\":18}]}",
+          "context": "", "sourceIds": []
+        }
+      },
+      {
+        "id": "expense-transform", "name": "Extract Expenses", "type": "transform", "autoUpdate": true,
+        "x": 1970, "y": 0, "width": 480, "height": 530, "contents": [],
+        "tool": {
+          "kind": "transform", "settings": { "source": "expense-ai", "mode": "path", "path": "$.expenses", "autoUpdate": true }, "text": "",
+          "output": "[{\"day\":\"Monday\",\"item\":\"coffee\",\"category\":\"Food\",\"amount\":5},{\"day\":\"Monday\",\"item\":\"lunch\",\"category\":\"Food\",\"amount\":12},{\"day\":\"Monday\",\"item\":\"train\",\"category\":\"Transport\",\"amount\":8},{\"day\":\"Tuesday\",\"item\":\"groceries\",\"category\":\"Food\",\"amount\":35},{\"day\":\"Tuesday\",\"item\":\"bus\",\"category\":\"Transport\",\"amount\":7},{\"day\":\"Tuesday\",\"item\":\"movie\",\"category\":\"Entertainment\",\"amount\":12},{\"day\":\"Tuesday\",\"item\":\"dinner\",\"category\":\"Food\",\"amount\":18}]",
+          "table": { "kind": "data-table", "columns": ["day", "item", "category", "amount"], "rows": [["Monday", "coffee", "Food", "5"], ["Monday", "lunch", "Food", "12"], ["Monday", "train", "Transport", "8"], ["Tuesday", "groceries", "Food", "35"], ["Tuesday", "bus", "Transport", "7"], ["Tuesday", "movie", "Entertainment", "12"], ["Tuesday", "dinner", "Food", "18"]] }
+        }
+      },
+      {
+        "id": "expense-sql", "name": "Spending Totals", "type": "sql", "autoUpdate": true,
+        "x": 2550, "y": 0, "width": 510, "height": 540, "contents": [],
+        "tool": { "kind": "sql", "settings": {}, "text": "SELECT category, ROUND(SUM(CAST(amount AS REAL)), 2) AS total, COUNT(*) AS purchases FROM input1 GROUP BY category ORDER BY total DESC", "output": "category,total,purchases\nFood,70.0,4\nTransport,15.0,2\nEntertainment,12.0,1", "table": { "kind": "data-table", "columns": ["category", "total", "purchases"], "rows": [["Food", "70.0", "4"], ["Transport", "15.0", "2"], ["Entertainment", "12.0", "1"]] } }
+      },
+      {
+        "id": "expense-chart", "name": "Spending Breakdown", "type": "chart-studio",
+        "x": 3160, "y": 0, "width": 780, "height": 690, "contents": [],
+        "tool": { "kind": "chart-studio", "settings": { "source": "expense-sql", "chart": "bar", "x": "category", "y": "total", "title": "Where did my money go?", "yLabel": "Amount spent", "xLabel": "Category" }, "text": "", "output": "", "table": null, "files": [] }
+      },
+      {
+        "id": "expense-selection", "name": "Investigate Selection", "type": "data-table", "autoUpdate": true,
+        "x": 4040, "y": 0, "width": 440, "height": 370, "contents": [],
+        "tool": { "kind": "data-table", "columns": ["category", "total", "purchases"], "rows": [] }
+      },
+      {
+        "id": "expense-files", "name": "Evidence Files", "type": "content-source",
+        "x": 4040, "y": 460, "width": 440, "height": 330, "contents": []
+      },
+      {
+        "id": "expense-report", "name": "Sample Case Notes", "type": "document-preview",
+        "x": 2550, "y": 800, "width": 510, "height": 420, "contents": [],
+        "tool": { "kind": "document-preview", "settings": {}, "text": "# The case of the disappearing budget\n\n**Sample diary: 97 total across 7 purchases.**\n\n- Food: **70** (4 purchases)\n- Transport: **15** (2 purchases)\n- Entertainment: **12** (1 purchase)\n\nFood accounts for roughly **72%** of the sample spend.\n\nThese are static notes about the preloaded sample, not a live-generated report. The SQL table and chart show current results after you rerun the pipeline.\n\nTry your own diary, then export the chart as evidence.", "output": "# Sample findings\n\nThe preloaded diary totals **97** across **7 purchases**. Food accounts for **70**, Transport for **15**, and Entertainment for **12**.\n\nThese notes describe the sample only. See the live SQL table for updated totals." }
+      },
+      {
+        "id": "expense-dashboard", "name": "Expense Dashboard", "type": "dashboard",
+        "x": 3160, "y": 800, "width": 780, "height": 720, "contents": [],
+        "tool": { "kind": "dashboard", "settings": {}, "text": "Voice Expense Detective", "output": "" }
+      }
+    ],
+    "wires": [
+      { "id": "expense-w1", "source": "expense-voice", "target": "expense-ai", "sourcePort": { "side": "right", "t": 0.5 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w2", "source": "expense-ai", "target": "expense-transform", "sourcePort": { "side": "right", "t": 0.4 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w3", "source": "expense-transform", "target": "expense-sql", "sourcePort": { "side": "right", "t": 0.5 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w4", "source": "expense-sql", "target": "expense-chart", "sourcePort": { "side": "right", "t": 0.4 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w5", "source": "expense-chart", "target": "expense-selection", "sourcePort": { "side": "right", "t": 0.3 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w6", "source": "expense-chart", "target": "expense-files", "sourcePort": { "side": "right", "t": 0.8 }, "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "expense-w7", "source": "expense-sql", "target": "expense-dashboard", "sourcePort": { "side": "bottom", "t": 0.5 }, "targetPort": { "side": "left", "t": 0.2 } },
+      { "id": "expense-w8", "source": "expense-report", "target": "expense-dashboard", "sourcePort": { "side": "right", "t": 0.5 }, "targetPort": { "side": "left", "t": 0.7 } },
+      { "id": "expense-w9", "source": "expense-chart", "target": "expense-dashboard", "sourcePort": { "side": "bottom", "t": 0.5 }, "targetPort": { "side": "top", "t": 0.5 } }
+    ]
+  }
+}

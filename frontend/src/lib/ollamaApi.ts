@@ -18,6 +18,7 @@ export async function generateText(
   body: { model: string; prompt: string; system: string; temperature: number; jsonOutput: boolean; images?: string[] },
   signal: AbortSignal,
   onChunk: (text: string) => void,
+  onProgress?: (phase: "thinking" | "answer") => void,
 ) {
   const response = await fetch(`${API_BASE}/api/ollama/generate`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
@@ -30,7 +31,8 @@ export async function generateText(
     if (!line.trim()) return;
     const event = JSON.parse(line);
     if (event.error) throw new Error(event.error);
-    if (event.response) { output += event.response; onChunk(output); }
+    if (event.thinking) onProgress?.("thinking");
+    if (event.response) { output += event.response; onProgress?.("answer"); onChunk(output); }
     if (event.done) done = true;
   };
   try {
@@ -42,6 +44,7 @@ export async function generateText(
       if (ended) { consume(buffer); break; }
     }
     if (!done) throw new Error("Ollama stream ended before generation completed");
+    if (!output.trim()) throw new Error("The model finished without an answer. It may have used its generation budget on thinking. Try again or choose another model.");
     return output;
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }

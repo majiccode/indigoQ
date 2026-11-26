@@ -125,6 +125,7 @@ export async function uploadContents(
 }
 
 export type WorkspaceOperation =
+  | { kind: "autoUpdate"; enabled: boolean }
   | { kind: "type"; type: string }
   | { kind: "draft"; document: EditorDocument }
   | { kind: "tool"; state: ToolState }
@@ -137,6 +138,7 @@ export async function workspaceOperation(id: string, operation: WorkspaceOperati
   let method = "POST";
   let body: unknown;
   switch (operation.kind) {
+    case "autoUpdate": path = "auto-update"; method = "PUT"; body = { enabled: operation.enabled }; break;
     case "type": path = "type"; body = { type: operation.type }; break;
     case "draft": path = "editor"; method = "PUT"; body = operation.document; break;
     case "tool": path = "tool"; method = "PUT"; body = operation.state; break;

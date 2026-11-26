@@ -83,6 +83,15 @@ See [the release guide](docs/INSTALL.md#build-and-publish-from-source) for prere
 
 ## Workspace types and connections
 
+Workspaces with inputs expose a persisted **Auto-update** toggle in their toolbar.
+When disabled, connected data stays at a snapshot until **Refresh inputs** is
+pressed. Live previews keep their existing auto-update defaults; Transform, SQL,
+and Data Table default to manual processing. Enable the toggle on these processors
+to rerun when input data changes. Data Table follows the first connected table,
+then text source, then file source. Turn it off to keep independent table edits.
+Ollama generation, model comparisons, microphone recording, playback, and HTTP
+requests retain their explicit Run/Start/Send controls.
+
 Blank workspaces offer a **Choose workspace type** toolbar. Types register their
 React component and input/output capabilities in `workspaceTypes.ts`. A type is
 immutable once assigned. Dropping files onto a blank workspace selects FileWorkspace.
@@ -124,7 +133,7 @@ surface. Their settings and completed outputs are saved with the graph.
   workspace. JSON can be an array of objects or an array of rows (first row is the
   header). Edit cells and headers, add/delete rows, add columns, sort/filter,
   inspect numeric summaries, or add a computed column using a math expression.
-  CSV and JSON exports include the whole table. Imports are explicit snapshots;
+  CSV and JSON exports include the whole table. Imports are snapshots by default;
   sorting and filtering are view-only. Tables support up to 100 columns and
   10,000 rows, displaying the first 500 matching rows.
 - **Ollama** lists installed local models and streams responses through the backend.
@@ -155,7 +164,7 @@ This explicitly replaces the current draft with a snapshot of the chosen output.
 
 ## Studio workspace collection
 
-Fifteen additional mini-apps are available from the workspace type picker:
+Sixteen additional mini-apps are available from the workspace type picker:
 
 | Workspace | Working features and connections |
 |---|---|
@@ -174,6 +183,18 @@ Fifteen additional mini-apps are available from the workspace type picker:
 | **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
 | **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
 | **Chart Studio** | Connected tables as line, scatter, grouped bar, or histogram charts; X/Y/series mapping, hover values, log axes, reference line, zoom/pan, and brush selection. Publish all or selected rows as a table snapshot; export SVG or PNG, with PNG saved to outgoing FileWorkspaces. |
+| **Speech to Text** | Full-workspace live microphone FFT, red recording toggle, language selection, interim transcription preview, and persistent transcript with text download. Wire → TextEditor to append finalized phrases or → Ollama to dictate its prompt; other studio text consumers can read the live output. Uses browser Web Speech recognition, which may require internet. |
+
+Speech to Text starts microphone access only after **Enable mic** or **Record**.
+Stopping recording leaves the microphone spectrum running; **Mic off** releases
+the microphone. Neither microphone access nor recognition starts on graph load.
+Speech delivery is live within the current page, and does not auto-run Ollama.
+Load **Examples → Voice to Ollama** for a ready-wired microphone workspace and
+Ollama assistant. Dictate a question, choose an installed model, then press Run.
+For a complete voice-to-data pipeline, load **Voice Expense Detective**: dictate
+purchases, extract structured records with Ollama, aggregate them with SQL, and
+explore spending in Chart Studio. Sample results are preloaded so the chart works
+before you record or run a model; PNG exports go into Evidence Files.
 
 The **Chart Studio** example in the Examples menu uses a small weekly-sales table
 with two regions. Brush points and publish them, import the result in Selected
@@ -190,7 +211,7 @@ never auto-start on graph load.
 
 Manual result-producing actions (simulation capture, SQL, transform, model runs,
 image publish, playground accept) publish persistent snapshots. Downstream Data
-Table imports remain explicit. Live control updates across separate browser tabs
+Table imports remain explicit unless Auto-update is enabled. Live control updates across separate browser tabs
 are not synchronized frame-by-frame.
 
 Three additional header examples cover the collection:

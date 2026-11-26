@@ -40,6 +40,26 @@ def test_examples_import_roundtrip_and_replacement(tmp_path: Path) -> None:
     assert len(client.get("/api/graph").json()["workspaces"]) == 1
 
 
+def test_voice_expense_example_pipeline(tmp_path: Path) -> None:
+    client = TestClient(create_app(tmp_path / "graph.json"))
+    graph = json.loads((EXAMPLES / "voice-expense-detective.json").read_text())["graph"]
+    workspaces = {workspace["id"]: workspace for workspace in graph["workspaces"]}
+    assert workspaces["expense-transform"]["autoUpdate"] is True
+    assert workspaces["expense-sql"]["autoUpdate"] is True
+    assert workspaces["expense-selection"]["autoUpdate"] is True
+    records = json.loads(workspaces["expense-ai"]["tool"]["output"])["expenses"]
+    table = workspaces["expense-transform"]["tool"]["table"]
+    assert [[str(record[column]) for column in table["columns"]] for record in records] == table[
+        "rows"
+    ]
+    response = client.post(
+        "/api/studio/sql",
+        json={"query": workspaces["expense-sql"]["tool"]["text"], "tables": [table]},
+    )
+    assert response.status_code == 200
+    assert response.json()["table"] == workspaces["expense-sql"]["tool"]["table"]
+
+
 def test_invalid_import_preserves_current_graph(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path / "graph.json"))
     graph = json.loads((EXAMPLES / "oscillator-lab.json").read_text())["graph"]

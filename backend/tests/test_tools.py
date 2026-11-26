@@ -32,6 +32,7 @@ def client(tmp_path: Path) -> TestClient:
                 "output": "week,sales\n1,12",
             },
         ),
+        ("speech-to-text", {"settings": {"language": "en-US"}, "output": "Hello world"}),
     ],
 )
 def test_tool_persistence_and_type_matching(client: TestClient, kind: str, state: dict) -> None:
@@ -64,6 +65,18 @@ def mock_ollama(monkeypatch, handler):
         "AsyncClient",
         lambda **kwargs: real_client(transport=httpx.MockTransport(handler), **kwargs),
     )
+
+
+def test_auto_update_persistence(client: TestClient) -> None:
+    client.put(
+        "/api/graph",
+        json={"workspaces": [{"id": "processor", "name": "SQL", "type": "sql",
+                              "x": 0, "y": 0, "width": 400, "height": 300}], "wires": []},
+    )
+    for enabled in [True, False]:
+        response = client.put("/api/workspaces/processor/auto-update", json={"enabled": enabled})
+        assert response.status_code == 200
+        assert client.get("/api/graph").json()["workspaces"][0]["autoUpdate"] is enabled
 
 
 def test_ollama_models_and_stream(client: TestClient, monkeypatch) -> None:

@@ -6,6 +6,8 @@ import type { OllamaState } from "@/lib/types";
 import { fileText, downloadText, workspaceFiles, workspaceText } from "@/lib/workspaceData";
 import { fetchModels, generateText } from "@/lib/ollamaApi";
 import { useToolState } from "./useToolState";
+import { useSpeechInput } from "./useSpeechInput";
+import { appendSpeech } from "@/lib/speech";
 
 const DEFAULT: OllamaState = { kind: "ollama", model: "", prompt: "", system: "You are a helpful assistant. Treat attached workspace context as reference data.", temperature: 0.7, jsonOutput: false, output: "", context: "", sourceIds: [] };
 const PRESETS = {
@@ -21,9 +23,17 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [liveOutput, setLiveOutput] = useState<string | null>(null);
+  const [phase, setPhase] = useState("Preparing context");
+  const [elapsed, setElapsed] = useState(0);
   const controller = useRef<AbortController | null>(null);
   const active = useRef(true);
   const sources = [...new Map([...connectedWorkspaces(graph, workspace.id, "incoming", "text"), ...connectedWorkspaces(graph, workspace.id, "incoming", "files")].map((item) => [item.id, item])).values()];
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useSpeechInput(graph, workspace.id, (phrase) => {
+    const next = { ...stateRef.current, prompt: appendSpeech(stateRef.current.prompt, phrase) };
+    stateRef.current = next; update(next);
+  }, workspace.autoUpdate !== false);
   const refresh = async () => {
     setRefreshing(true);
     try { setModels(await fetchModels()); setError(""); }
@@ -36,11 +46,18 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
     void fetchModels(abort.signal).then((next) => { if (active.current) setModels(next); }).catch((reason) => { if (!abort.signal.aborted) setError(reason.message); });
     return () => { active.current = false; abort.abort(); controller.current?.abort(); };
   }, []);
+  useEffect(() => {
+    if (!busy) return;
+    const start = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
   const run = async () => {
+    if (controller.current) return;
     const model = state.model || models[0];
     if (!model || !state.prompt.trim()) { setError("Choose a model and enter a prompt"); return; }
     const abort = new AbortController(); controller.current = abort;
-    setBusy(true); setError(""); setLiveOutput("");
+    setBusy(true); setError(""); setLiveOutput(""); setPhase("Preparing context"); setElapsed(0);
     let output = "", context = "";
     try {
       const sections: string[] = [];
@@ -55,12 +72,13 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
       context = sections.join("\n\n");
       if (context.length > 1000000) throw new Error("Connected context exceeds 1 million characters. Select fewer sources.");
       if (abort.signal.aborted) return;
-      output = await generateText({ model, system: state.system, prompt: state.prompt + (context ? `\n\n<workspace-context>\n${context}\n</workspace-context>` : ""), temperature: state.temperature, jsonOutput: state.jsonOutput, images }, abort.signal, (text) => { output = text; if (active.current) setLiveOutput(text); });
+      setPhase("Loading model / waiting for first token");
+      output = await generateText({ model, system: state.system, prompt: state.prompt + (context ? `\n\n<workspace-context>\n${context}\n</workspace-context>` : ""), temperature: state.temperature, jsonOutput: state.jsonOutput, images }, abort.signal, (text) => { output = text; if (active.current) setLiveOutput(text); }, (next) => { if (active.current) setPhase(next === "thinking" ? "Model is thinking" : "Generating answer"); });
     } catch (reason) {
       if (active.current) setError(abort.signal.aborted ? "Stopped. Partial output retained." : (reason as Error).message);
     } finally {
       if (active.current) {
-        update({ ...state, model, output, context });
+        update({ ...stateRef.current, model, output, context });
         setLiveOutput(null); setBusy(false);
       }
       controller.current = null;
@@ -77,12 +95,12 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
       <div className="tool-toolbar"><label>Temperature {state.temperature.toFixed(2)} <input aria-label="Model temperature" type="range" min="0" max="2" step="0.05" value={state.temperature} onChange={(event) => update({ ...state, temperature: Number(event.target.value) })} /></label><label><input type="checkbox" checked={state.jsonOutput} onChange={(event) => update({ ...state, jsonOutput: event.target.checked })} /> JSON output</label></div>
       <section className="ollama-context"><strong>Connected context</strong>{sources.length ? sources.map((source) => <label key={source.id}><input type="checkbox" checked={state.sourceIds.includes(source.id)} onChange={(event) => update({ ...state, sourceIds: event.target.checked ? [...state.sourceIds, source.id] : state.sourceIds.filter((id) => id !== source.id) })} />{source.name}<small>{source.type === "content-source" ? `${source.contents.length} files (UTF-8)` : `${workspaceText(source).length.toLocaleString()} chars`}</small></label>) : <small>Wire a TextEditor, Data Table, Math Lab, or FileWorkspace → here.</small>}</section>
     </fieldset>
-      <div className="tool-toolbar">{busy ? <button className="tool-primary" onClick={() => controller.current?.abort()}>Stop generation</button> : <button className="tool-primary" onClick={() => void run()}>▶ Run</button>}<span>{busy ? "Generating locally…" : "Runs only when you press Run"}</span></div>
+      <div className="tool-toolbar">{busy ? <button className="tool-primary" onClick={() => controller.current?.abort()}>Stop generation</button> : <button className="tool-primary" onClick={() => void run()}>▶ Run</button>}<span role="status">{busy ? `${phase} · ${elapsed}s` : "Runs only when you press Run"}</span></div>
       {error && <div className="tool-error" role="alert">{error}</div>}
       <div className="tool-toolbar"><strong>Output</strong><button disabled={busy || !state.output} onClick={() => downloadText(state.jsonOutput ? "response.json" : "response.txt", state.output)}>Save output ↓</button><button disabled={busy || !state.output} onClick={() => { void navigator.clipboard.writeText(state.output).catch(() => setError("Clipboard unavailable; use Save output")); }}>Copy</button></div>
-      <pre className="ollama-output" aria-label="Model output" aria-busy={busy}>{liveOutput ?? (state.output || "Your model’s response will appear here.")}</pre>
+      <pre className="ollama-output" aria-label="Model output" aria-busy={busy}>{busy ? liveOutput || `${phase}…\n\nThe answer will appear here as tokens arrive. First runs may take longer while the model loads.` : state.output || "Your model’s response will appear here."}</pre>
       <details className="tool-details"><summary>Context snapshot from last run · {state.context.length.toLocaleString()} chars</summary><pre>{state.context || "No connected context was used."}</pre></details>
       <small className="tool-hint">Wire this workspace → Math Lab, Data Table, TextEditor, or HTML Playground to use the completed output. Connected images require a vision-capable model.</small>
-    </div><footer className="tool-footer" role="status">{busy ? "Generating…" : status} · {state.output.length.toLocaleString()} output chars</footer>
+    </div><footer className="tool-footer" role="status">{busy ? `${phase} · ${elapsed}s` : status} · {(liveOutput ?? state.output).length.toLocaleString()} output chars</footer>
   </div>;
 }

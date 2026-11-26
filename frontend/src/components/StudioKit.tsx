@@ -6,8 +6,10 @@ import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { incoming, STUDIO_NAMES, studioDefault } from "@/lib/studio";
 import { useToolState } from "./useToolState";
 import { workspaceText } from "@/lib/workspaceData";
+import { liveOutput, useLiveRevision } from "@/lib/studioRuntime";
 
 export function useStudio(props: TypedWorkspaceProps, kind: StudioKind) {
+  useLiveRevision();
   const tool = props.workspace.tool;
   const initial = tool?.kind === kind ? tool as StudioState : studioDefault(kind);
   const saved = useToolState(initial, props.onOperation, !tool);
@@ -20,7 +22,11 @@ export function useStudio(props: TypedWorkspaceProps, kind: StudioKind) {
     try { await action(); } catch (reason) { setError((reason as Error).message); }
     finally { setBusy(false); }
   };
-  return { ...saved, patch, setting, error, setError, busy, run, sources: incoming(props.graph, props.workspace.id) };
+  const sources = incoming(props.graph, props.workspace.id).map((source) => {
+    const text = props.workspace.autoUpdate !== false && source.type === "speech-to-text" ? liveOutput(source.id)?.text : undefined;
+    return text !== undefined ? { ...source, tool: { ...(source.tool?.kind === "speech-to-text" ? source.tool : studioDefault("speech-to-text")), output: text } } : source;
+  });
+  return { ...saved, patch, setting, error, setError, busy, run, sources };
 }
 
 export function StudioShell({ kind, status, error, actions, children }: { kind: StudioKind; status: string; error?: string; actions?: ReactNode; children: ReactNode }) {

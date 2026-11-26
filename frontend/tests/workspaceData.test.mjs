@@ -20,6 +20,37 @@ const { diffLines } = load("textDiff");
 const { workspaceResizeAt, resizeCursor } = load("geometry");
 const { detectSelectionTokens, parseColour, formatColour, replaceTokenValues } = load("selectionEditors");
 const { chartPoints, chartBounds, selectedChartRows } = load("chart");
+const { speechResults, appendSpeech } = load("speech");
+const { transformInput } = load("transform");
+const { autoUpdateEnabled, incomingSnapshot } = load("autoUpdate");
+
+test("auto-update policy preserves explicit flags and legacy preview defaults", () => {
+  assert.equal(autoUpdateEnabled({ type: "sql" }), false);
+  assert.equal(autoUpdateEnabled({ type: "chart-studio" }), true);
+  assert.equal(autoUpdateEnabled({ type: "transform", autoUpdate: true }), true);
+  assert.equal(autoUpdateEnabled({ type: "chart-studio", autoUpdate: false }), false);
+  const source = { id: "source", type: "ollama", tool: { output: "one" } };
+  const graph = { workspaces: [source, { id: "target" }], wires: [{ source: "source", target: "target" }] };
+  assert.equal(incomingSnapshot(graph, "target"), incomingSnapshot({ ...graph, workspaces: [{ ...source, x: 999 }, { id: "target", tool: { output: "other" } }] }, "target"));
+});
+
+test("transform accepts fenced Ollama JSON and clears tables for empty extraction", async () => {
+  const state = { kind: "transform", settings: { mode: "path", path: "$.expenses" }, text: "", table: { kind: "data-table", columns: ["item", "amount"], rows: [] } };
+  const result = await transformInput('```json\n{"expenses":[{"item":"coffee","amount":5}]}\n```', state);
+  assert.deepEqual(result.table.rows, [["coffee", "5"]]);
+  assert.deepEqual((await transformInput('{"expenses":[]}', state)).table.rows, []);
+  await assert.rejects(transformInput('{"wrong":[]}', state), /Missing path/);
+});
+
+test("speech output separates interim hypotheses and appends only new final phrases", () => {
+  const result = (text, isFinal) => ({ 0: { transcript: text }, length: 1, isFinal });
+  const event = { resultIndex: 1, results: { length: 4, 0: result("already sent", true), 1: result("hello world", true), 2: result("next phrase", true), 3: result("still thinking", false) } };
+  assert.deepEqual(speechResults(event), { final: "hello world next phrase", interim: "still thinking" });
+  assert.equal(appendSpeech("Existing note", "hello world"), "Existing note hello world");
+  assert.equal(appendSpeech("Line\n", "hello"), "Line\nhello");
+  assert.equal(appendSpeech("", "  hello  "), "hello");
+  assert.equal(appendSpeech("Keep me", ""), "Keep me");
+});
 
 test("charts omit invalid cells, preserve series, brush original rows and bin endpoints", () => {
   const table = { kind: "data-table", columns: ["x", "y", "group"], rows: [["1", "2", "A"], ["2", "4", "B"], ["", "5", "A"], ["3", "", "B"], ["4", "-2", "B"]] };
@@ -122,7 +153,7 @@ test("Math Lab publishes sampled tables using connected equations and knob overr
 });
 
 test("graph files roundtrip complete examples and accept raw API/store JSON", () => {
-  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio"]) {
+  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio", "voice-to-ollama", "voice-expense-detective"]) {
     const text = fs.readFileSync(new URL(`../public/examples/${name}.json`, import.meta.url), "utf8");
     const graph = parseGraphFile(text);
     assert.deepEqual(parseGraphFile(serializeGraph(graph)), graph);

@@ -5,7 +5,7 @@ import type { ControlValue } from "./studio";
 import { incoming, parseControls } from "./studio";
 import type { Graph, TableState } from "./types";
 
-export interface LiveOutput { controls?: Record<string, ControlValue>; text?: string; table?: TableState }
+export interface LiveOutput { controls?: Record<string, ControlValue>; text?: string; table?: TableState; speech?: { session: string; text: string } }
 const values = new Map<string, LiveOutput>();
 const listeners = new Set<() => void>();
 let revision = 0;
@@ -30,7 +30,7 @@ export function connectedControls(graph: Graph, id: string, visited = new Set<st
     if (source.tool?.kind === "timeline") {
       try { Object.assign(result, JSON.parse(source.tool.output || "{}")); } catch {}
     }
-    Object.assign(result, values.get(source.id)?.controls);
+    if (graph.workspaces.find((workspace) => workspace.id === id)?.autoUpdate !== false) Object.assign(result, values.get(source.id)?.controls);
     if (source.tool?.kind === "controls") Object.assign(result, connectedControls(graph, source.id, seen));
   }
   return result;

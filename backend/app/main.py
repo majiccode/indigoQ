@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .models import (
+    AutoUpdateRequest,
     ContentEntry,
     EditorDocument,
     Graph,
@@ -174,6 +175,13 @@ def create_app(data_file: Path | None = None) -> FastAPI:
             workspace.type = request.type
             if request.type == "text-editor" and workspace.editor is None:
                 workspace.editor = EditorDocument()
+
+        return store.update(change)
+
+    @app.put("/api/workspaces/{workspace_id}/auto-update", response_model=GraphSnapshot)
+    def set_auto_update(workspace_id: str, request: AutoUpdateRequest) -> GraphSnapshot:
+        def change(graph: Graph) -> None:
+            find_workspace(graph, workspace_id).autoUpdate = request.enabled
 
         return store.update(change)
 

@@ -6,6 +6,8 @@ import type { TableState } from "@/lib/types";
 import { downloadText, fileText, parseTable, tableCSV, workspaceFiles, workspaceTable, workspaceText } from "@/lib/workspaceData";
 import { compileExpression } from "@/lib/mathEngine";
 import { useToolState } from "./useToolState";
+import { autoUpdateEnabled } from "@/lib/autoUpdate";
+import { useAutoProcess } from "./useAutoProcess";
 
 const DEFAULT: TableState = { kind: "data-table", columns: ["x", "y"], rows: [["0", "0"], ["1", "0.84"], ["2", "0.91"], ["3", "0.14"], ["4", "-0.76"], ["5", "-0.96"]] };
 
@@ -23,6 +25,14 @@ export default function DataTableWorkspace({ workspace, graph, onOperation }: Ty
   const files = connectedWorkspaces(graph, workspace.id, "incoming", "files").map((item) => ({ ...item, contents: workspaceFiles(item) }));
   const attempt = async (action: () => void | Promise<void>) => { try { setError(""); await action(); } catch (reason) { setError((reason as Error).message); } };
   const importText = (text: string) => update(parseTable(text));
+  const autoSource = tables[0] ?? incoming[0] ?? files[0];
+  useAutoProcess(autoUpdateEnabled(workspace), autoSource ? JSON.stringify([autoSource.id, autoSource.tool, autoSource.editor, autoSource.contents]) : "", () => attempt(async () => {
+    if (!autoSource) return;
+    const table = workspaceTable(autoSource, graph);
+    if (table) update(table);
+    else if (incoming.some((source) => source.id === autoSource.id)) importText(workspaceText(autoSource));
+    else if (autoSource.contents[0]) importText(await fileText(autoSource.contents[0]));
+  }));
   const visible = state.rows.map((row, index) => ({ row, index })).filter(({ row }) => row.some((cell) => cell.toLowerCase().includes(filter.toLowerCase())));
   if (sort) visible.sort((a, b) => {
     const x = a.row[sort.column] ?? "", y = b.row[sort.column] ?? "";

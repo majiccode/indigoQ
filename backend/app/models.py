@@ -23,6 +23,7 @@ StudioKind = Literal[
     "timeline",
     "dashboard",
     "chart-studio",
+    "speech-to-text",
 ]
 
 
@@ -58,6 +59,7 @@ class Workspace(ApiModel):
     height: float = Field(ge=60, le=20_000)
     type: str | None = Field(default=None, max_length=80)
     contents: list[ContentEntry] = Field(default_factory=list, max_length=1000)
+    autoUpdate: bool | None = None
     editor: EditorDocument | None = None
     tool: MathState | TableState | OllamaState | StudioState | None = None
 
@@ -140,6 +142,10 @@ class EditorDocument(ApiModel):
 
 class WorkspaceTypeRequest(ApiModel):
     type: Literal["content-source", "text-editor", "math-lab", "data-table", "ollama"] | StudioKind
+
+
+class AutoUpdateRequest(ApiModel):
+    enabled: bool
 
 
 class OpenDocumentRequest(ApiModel):

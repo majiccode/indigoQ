@@ -1310,7 +1310,7 @@ export default function CanvasBoard({
               onGraphChange={(snapshot) => {
                 const updated = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => {
                   const remote = snapshot.workspaces.find((next) => next.id === item.id);
-                  return remote ? { ...item, type: remote.type, contents: remote.contents, editor: remote.editor, tool: remote.tool } : item;
+                  return remote ? { ...item, type: remote.type, autoUpdate: remote.autoUpdate, contents: remote.contents, editor: remote.editor, tool: remote.tool } : item;
                 }) };
                 graphRef.current = updated;
                 sceneRevRef.current += 1;

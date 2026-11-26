@@ -1,0 +1,33 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      {
+        "id": "voice-notes", "name": "Start here — Voice to Ollama", "type": "text-editor",
+        "x": 0, "y": 0, "width": 440, "height": 520, "contents": [],
+        "editor": {
+          "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null,
+          "text": "VOICE TO OLLAMA\n\n1. In Voice Input, choose your language and press Record. Allow microphone access.\n2. Say a question, for example: Explain why the sky is blue in three short sentences.\n3. Watch the microphone spectrum and transcript. Finalized phrases append directly to Voice Assistant's Prompt.\n4. Press Stop recording when finished. Mic off releases the microphone.\n5. In Voice Assistant, choose an installed Ollama model, review or edit your dictated prompt, then press Run.\n\nOllama must be running locally with a model installed. No model is hard-coded. Speech recognition uses your browser's speech service and may require internet; try Chrome if your browser does not support it.\n\nNeither the microphone nor model generation starts automatically. The speech source does not need to be selected as context: it already writes to the prompt.\n\nFor another question, clear the Ollama prompt first. Clear in Voice Input resets its transcript but does not erase the prompt.\n"
+        }
+      },
+      {
+        "id": "voice-input", "name": "Voice Input", "type": "speech-to-text",
+        "x": 540, "y": 0, "width": 660, "height": 540, "contents": [],
+        "tool": { "kind": "speech-to-text", "settings": { "language": "en-US" }, "text": "", "output": "", "table": null, "files": [] }
+      },
+      {
+        "id": "voice-assistant", "name": "Voice Assistant", "type": "ollama",
+        "x": 1300, "y": 0, "width": 600, "height": 700, "contents": [],
+        "tool": {
+          "kind": "ollama", "model": "", "prompt": "",
+          "system": "You are a helpful assistant answering a question dictated by voice. Respond clearly and concisely. Speech recognition may introduce minor punctuation or spelling errors; interpret the user's intent naturally.",
+          "temperature": 0.7, "jsonOutput": false, "output": "", "context": "", "sourceIds": []
+        }
+      }
+    ],
+    "wires": [
+      { "id": "voice-input-assistant", "source": "voice-input", "sourcePort": { "side": "right", "t": 0.5 }, "target": "voice-assistant", "targetPort": { "side": "left", "t": 0.4 } }
+    ]
+  }
+}
