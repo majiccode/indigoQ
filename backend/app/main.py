@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .models import (
     ContentEntry,
@@ -265,6 +266,16 @@ def create_app(data_file: Path | None = None) -> FastAPI:
     def delete_graph() -> Response:
         store.clear()
         return Response(status_code=204)
+
+    # Mount last so unknown API routes still return JSON rather than the UI.
+    static_dir = os.environ.get("INDIGOQ_STATIC_DIR")
+    if static_dir:
+
+        @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+        def unknown_api(path: str) -> None:
+            raise HTTPException(404, "Unknown API route")
+
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
     return app
 

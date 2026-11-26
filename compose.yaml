@@ -1,0 +1,14 @@
+services:
+  indigoq:
+    image: ghcr.io/majiccode/indigoq:${INDIGOQ_VERSION:-latest}
+    ports:
+      - "127.0.0.1:3000:8787"
+    volumes:
+      - indigoq-data:/data
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+volumes:
+  indigoq-data:

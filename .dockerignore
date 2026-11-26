@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.next
+**/out
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+backend/data
+dist
+build
+.moon

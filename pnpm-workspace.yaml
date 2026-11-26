@@ -1,0 +1,8 @@
+packages:
+  - '.'
+ignoredBuiltDependencies:
+  - app-builder-bin
+  - dmg-license
+  - electron-winstaller
+onlyBuiltDependencies:
+  - electron

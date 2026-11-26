@@ -10,6 +10,11 @@ persisted locally and to a small FastAPI service.
 
 ## Prerequisites
 
+For **pre-built desktop apps, portable bundles, and Docker**, see
+[installation instructions](docs/INSTALL.md) and
+[GitHub Releases](https://github.com/majiccode/indigoQ/releases).
+The prerequisites below are only for source development.
+
 - moon `>= 2`
 - uv `>= 0.11` (Python 3.11+; pinned to 3.13 via `backend/.python-version`)
 - Node.js 20+ and pnpm (backend and frontend toolchains are invoked via moon)
@@ -47,6 +52,21 @@ moon run backend:format      # ruff format
 ```
 
 Run the frontend expression/data-flow tests with `pnpm --dir frontend test`.
+
+## Build and release
+
+```bash
+# Build packages for the current machine, including the desktop app:
+node scripts/build-release.mjs --build-only --desktop
+
+# From clean, up-to-date main: version, commit, tag, push, and publish via Actions:
+node scripts/build-release.mjs 0.1.1 --wait
+```
+
+The tag workflow builds macOS arm64/x64, Windows x64, Linux x64, and Docker
+amd64/arm64. Desktop installers and archives, portable browser/server bundles,
+checksums, and Docker Compose are published together after checks pass.
+See [the release guide](docs/INSTALL.md#build-and-publish-from-source) for prerequisites.
 
 ## Controls
 

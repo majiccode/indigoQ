@@ -17,3 +17,8 @@ node_modules/
 .next/
 out/
 *.tsbuildinfo
+
+# release output
+dist/
+build/
+*.spec

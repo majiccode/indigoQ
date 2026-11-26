@@ -1,37 +1,38 @@
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FullscreenWorkspaceView from "@/components/FullscreenWorkspaceView";
 import Link from "next/link";
 
 import type { Graph, Workspace } from "@/lib/types";
-import { normalizeGraph } from "@/lib/graph";
+import { fetchGraph } from "@/lib/graphApi";
 
 const TOOLBAR_ICONS = ["grid", "play", "sliders", "search"] as const;
 
-export default async function WorkspacePage({
-  searchParams,
-}: Readonly<{
-  searchParams: Promise<{ id?: string }>;
-}>) {
-  const params = await searchParams;
-  const workspaceId = params.id ?? "";
-  let workspace: Workspace | null = null;
-  let graph: Graph = { workspaces: [], wires: [] };
+export default function WorkspacePage() {
+  return <Suspense fallback={<div className="app-shell">Loading workspace…</div>}><WorkspacePageContent /></Suspense>;
+}
 
-  if (workspaceId) {
-    try {
-      const response = await fetch(
-        `${process.env.INDIGOQ_API_URL ?? "http://127.0.0.1:8787"}/api/graph`,
-        { cache: "no-store" },
-      );
-      if (response.ok) {
-        const snapshot = normalizeGraph(await response.json());
-        if (snapshot) graph = snapshot;
-        workspace =
-          graph.workspaces.find((item) => item.id === workspaceId) ?? null;
-      }
-    } catch {
-      workspace = null;
+function WorkspacePageContent() {
+  const workspaceId = useSearchParams().get("id") ?? "";
+  const [snapshot, setSnapshot] = useState<{ id: string; graph: Graph } | null>(null);
+  const [failedId, setFailedId] = useState<string | null>(null);
+  const graph = snapshot?.id === workspaceId ? snapshot.graph : { workspaces: [], wires: [] };
+  const workspace: Workspace | null = graph.workspaces.find((item) => item.id === workspaceId) ?? null;
+  const loading = Boolean(workspaceId) && snapshot?.id !== workspaceId && failedId !== workspaceId;
+
+  useEffect(() => {
+    let active = true;
+    if (workspaceId) {
+      void fetchGraph().then((next) => {
+        if (active) setSnapshot({ id: workspaceId, graph: next });
+      }).catch(() => {
+        if (active) setFailedId(workspaceId);
+      });
     }
-  }
+    return () => { active = false; };
+  }, [workspaceId]);
 
   return (
     <div className="app-shell">
@@ -106,6 +107,7 @@ export default async function WorkspacePage({
 
       {workspace ? (
         <FullscreenWorkspaceView
+          key={workspace.id}
           initialWorkspace={workspace}
           initialGraph={graph}
         />
@@ -113,7 +115,7 @@ export default async function WorkspacePage({
         <div className="fs-main">
           <div className="fs-card">
             <div className="fs-card-header">
-              <span className="fs-card-name">Workspace not found</span>
+              <span className="fs-card-name">{loading ? "Loading workspace…" : failedId === workspaceId ? "Could not load workspace. Check the API connection and reload." : "Workspace not found"}</span>
             </div>
           </div>
         </div>
