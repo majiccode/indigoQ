@@ -9,7 +9,10 @@ let origin;
 let quitting = false;
 let log;
 const smokeTest = process.argv.includes("--smoke-test");
-if (smokeTest) app.commandLine.appendSwitch("no-sandbox");
+if (smokeTest) {
+  app.commandLine.appendSwitch("no-sandbox");
+  app.commandLine.appendSwitch("disable-dev-shm-usage");
+}
 
 function localUrl(value) {
   try { return new URL(value).origin === origin; } catch { return false; }
