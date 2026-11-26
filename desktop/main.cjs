@@ -10,6 +10,7 @@ let quitting = false;
 let log;
 const smokeTest = process.argv.includes("--smoke-test");
 if (smokeTest) {
+  app.disableHardwareAcceleration();
   app.commandLine.appendSwitch("no-sandbox");
   app.commandLine.appendSwitch("disable-dev-shm-usage");
 }
@@ -22,9 +23,13 @@ function createWindow(url) {
   const window = new BrowserWindow({
     width: 1440, height: 960, minWidth: 800, minHeight: 600,
     title: "indigoQ", show: false,
-    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: !smokeTest },
   });
   window.once("ready-to-show", () => window.show());
+  window.webContents.on("render-process-gone", (_event, details) => {
+    console.error("Renderer stopped:", details);
+    if (smokeTest) { backend?.kill(); app.exit(1); }
+  });
   window.webContents.setWindowOpenHandler(({ url: target }) => {
     if (localUrl(target)) {
       createWindow(target);
