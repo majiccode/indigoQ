@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { spawn, execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,9 +10,9 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const temp = mkdtempSync(path.join(tmpdir(), "indigoq-smoke-"));
 const version = JSON.parse(readFileSync(path.join(root, "package.json"))).version;
 const exeName = process.platform === "win32" ? "indigoq-server.exe" : "indigoq-server";
-const bundleExe = path.join(root, `dist/portable/indigoQ-${version}-${process.platform}-${process.arch}-server`, exeName);
-const executable = existsSync(bundleExe) ? bundleExe : path.join(root, "dist/server/indigoq-server", exeName);
-console.log(`Testing ${path.relative(root, executable)}`);
+const bundleName = `indigoQ-${version}-${process.platform}-${process.arch}-server`;
+const archive = path.join(root, "dist", `${bundleName}.${process.platform === "win32" ? "zip" : "tar.gz"}`);
+const executable = path.join(temp, bundleName, exeName);
 let child;
 async function start() {
   child = spawn(executable, ["--port", "0", "--no-browser"], { env: { ...process.env, INDIGOQ_DATA_FILE: path.join(temp, "graph.json") }, stdio: ["ignore", "pipe", "inherit"] });
@@ -34,6 +34,8 @@ async function stop() {
   clearTimeout(timer);
 }
 try {
+  execFileSync("tar", ["-xf", archive, "-C", temp]);
+  console.log(`Testing relocated archive ${path.basename(archive)}`);
   let url = await start();
   assert.equal((await fetch(`${url}/api/health`).then(r => r.json())).status, "ok");
   for (const route of ["/", "/workspace/?id=smoke", "/examples/oscillator-lab.json"]) {
