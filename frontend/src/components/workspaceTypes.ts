@@ -20,6 +20,7 @@ import DashboardWorkspace from "./DashboardWorkspace";
 import ChartWorkspace from "./ChartWorkspace";
 import TextToSpeechWorkspace from "./TextToSpeechWorkspace";
 import ReadAloudWorkspace from "./ReadAloudWorkspace";
+import SystemMonitorWorkspace from "./SystemMonitorWorkspace";
 import { STUDIO_NAMES } from "@/lib/studio";
 import { registerWorkspaceType } from "@/lib/workspaceRegistry";
 
@@ -55,6 +56,7 @@ registerWorkspaceType({ type: "dashboard", name: STUDIO_NAMES.dashboard, descrip
 registerWorkspaceType({ type: "chart-studio", name: STUDIO_NAMES["chart-studio"], description: "Explore tables with charts, brush rows, and export images.", inputs: ["table"], outputs: ["table", "text", "files"], component: ChartWorkspace });
 registerWorkspaceType({ type: "speech-to-text", name: STUDIO_NAMES["speech-to-text"], description: "Live microphone spectrum and speech transcription to connected text workspaces. Reads connected text aloud.", inputs: ["text"], outputs: ["text"], component: TextToSpeechWorkspace });
 registerWorkspaceType({ type: "text-to-speech", name: "Text to Speech", description: "Reads connected text aloud using your browser's speech synthesis.", inputs: ["text"], outputs: [], component: ReadAloudWorkspace });
+registerWorkspaceType({ type: "system-monitor", name: STUDIO_NAMES["system-monitor"], description: "Live system metrics: CPU, memory, disk, network, GPU, and processes.", inputs: [], outputs: [], component: SystemMonitorWorkspace });
 
 registerWorkspaceType({
   type: "data-table", name: "Data Table", description: "Explore, edit, and transform CSV and JSON data.",

@@ -5,6 +5,19 @@ export function isPdf(file: ContentEntry) {
   return file.mimeType.toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
 }
 
+export function isDocx(file: ContentEntry) {
+  return file.mimeType.toLowerCase() === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || /\.docx$/i.test(file.name);
+}
+
+export async function docxText(dataUrl: string): Promise<string> {
+  const mammoth = await import("mammoth");
+  const response = await fetch(dataUrl);
+  if (!response.ok) throw new Error(`Unable to read document (${response.status})`);
+  const buffer = await response.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+  return result.value.trim();
+}
+
 export function documentSource(sources: Workspace[], token: string, localText: string): { file?: ContentEntry; text: string; missing?: boolean } {
   if (token === "local" || (!token && !sources.length)) return { text: localText };
   if (token.startsWith("file|")) {

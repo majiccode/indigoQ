@@ -18,6 +18,7 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
   const pendingText = useRef("");
   const prevFollow = useRef(false);
   const speakRef = useRef<((chunk: string) => void) | null>(null);
+  const speakAllRef = useRef<(() => void) | null>(null);
   const toggleRef = useRef<(() => void) | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -29,7 +30,8 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(chunk);
-      u.voice = null;
+      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
+      if (selectedVoice) u.voice = selectedVoice;
       u.rate = rate;
       u.pitch = pitch;
       u.onend = () => {
@@ -53,7 +55,7 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
       setSpeaking(true);
       window.speechSynthesis.speak(u);
     }
-  }, [rate, pitch]);
+  }, [rate, pitch, voice]);
 
   const toggleFollow = useCallback(() => {
     const nextFollow = !follow;
@@ -64,6 +66,13 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
       spokenLength.current = text.length;
     }
   }, [follow, text, app]);
+
+  const speakAll = useCallback(() => {
+    if (!text.trim() || ttsActive.current) return;
+    spokenLength.current = 0;
+    speakRef.current?.(text);
+    spokenLength.current = text.length;
+  }, [text]);
 
   const stop = useCallback(() => {
     ttsActive.current = false;
@@ -79,6 +88,7 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
 
   useEffect(() => {
     speakRef.current = speakChunk;
+    speakAllRef.current = speakAll;
     toggleRef.current = toggleFollow;
     stopRef.current = stop;
 
@@ -102,12 +112,17 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
         speakRef.current(newPart);
       }
     }
-  }, [follow, text, speakChunk, toggleFollow, stop]);
+  }, [follow, text, speakAll, speakChunk, toggleFollow, stop]);
 
   useEffect(() => {
-    if (!ttsActive.current || !voice) return;
+    if (!ttsActive.current) return;
     const u = utterance.current;
-    if (u) { u.voice = null; u.rate = rate; u.pitch = pitch; }
+    if (u) {
+      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
+      if (selectedVoice) u.voice = selectedVoice;
+      u.rate = rate;
+      u.pitch = pitch;
+    }
   }, [voice, rate, pitch]);
 
   return <StudioShell kind="text-to-speech" status={app.status} error={app.error}>
@@ -125,12 +140,19 @@ export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
     </div>
     <div className="tool-toolbar" style={{ marginTop: 6 }}>
       <button
-        disabled={!text.trim() || app.busy}
+        disabled={!text.trim() || app.busy || speaking}
         onClick={() => toggleRef.current?.()}
         aria-pressed={follow}
         style={follow ? { background: "#c4a4ed", color: "#172012" } : undefined}
       >
-        {follow ? "Following…" : "Speak"}
+        {follow ? "Following…" : "Follow"}
+      </button>
+      <button
+        disabled={!text.trim() || app.busy || speaking}
+        onClick={() => speakAllRef.current?.()}
+        style={{ marginLeft: 6 }}
+      >
+        Speak it all
       </button>
       <button disabled={!speaking} onClick={() => stopRef.current?.()}>Stop</button>
     </div>

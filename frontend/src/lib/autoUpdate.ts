@@ -1,6 +1,6 @@
 import type { Graph, Workspace } from "./types";
 
-const LIVE_TYPES = new Set(["text-editor", "ollama", "math-lab", "controls", "simulation", "timeline", "audio-lab", "playground", "document-preview", "diff", "image-studio", "dashboard", "chart-studio"]);
+const LIVE_TYPES = new Set(["text-editor", "ollama", "math-lab", "controls", "simulation", "timeline", "audio-lab", "playground", "document-preview", "diff", "image-studio", "dashboard", "chart-studio", "text-to-speech"]);
 export function autoUpdateEnabled(workspace: Workspace): boolean {
   if (typeof workspace.autoUpdate === "boolean") return workspace.autoUpdate;
   if (workspace.tool && "settings" in workspace.tool && typeof workspace.tool.settings.autoUpdate === "boolean") return workspace.tool.settings.autoUpdate;

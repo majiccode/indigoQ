@@ -111,7 +111,8 @@ export default function TextToSpeechWorkspace(props: TypedWorkspaceProps) {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.voice = null;
+      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
+      if (selectedVoice) u.voice = selectedVoice;
       u.rate = rate;
       u.pitch = pitch;
       u.onend = () => { if (ttsActive.current) setSpeaking(false); ttsActive.current = false; };
@@ -144,9 +145,14 @@ export default function TextToSpeechWorkspace(props: TypedWorkspaceProps) {
   }, [voice, voices]);
 
   useEffect(() => {
-    if (!ttsActive.current || !voice) return;
+    if (!ttsActive.current) return;
     const u = utterance.current;
-    if (u) { u.voice = null; u.rate = rate; u.pitch = pitch; }
+    if (u) {
+      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
+      if (selectedVoice) u.voice = selectedVoice;
+      u.rate = rate;
+      u.pitch = pitch;
+    }
   }, [voice, rate, pitch]);
 
   useEffect(() => {

@@ -450,3 +450,74 @@ def test_file_save_rejects_malformed_data_url(client: TestClient) -> None:
             },
         )
         assert response.status_code == 422
+
+
+def test_system_cpu(client: TestClient) -> None:
+    response = client.get("/api/system/cpu")
+    assert response.status_code == 200
+    data = response.json()
+    assert "percent" in data
+    assert "count" in data
+    assert isinstance(data["count"], int)
+    assert data["count"] >= 1
+    assert isinstance(data["per_cpu"], list)
+
+
+def test_system_memory(client: TestClient) -> None:
+    response = client.get("/api/system/memory")
+    assert response.status_code == 200
+    data = response.json()
+    for key in ("total", "available", "used", "percent", "free"):
+        assert key in data
+    assert isinstance(data["total"], int)
+    assert data["total"] > 0
+    assert 0 <= data["percent"] <= 100
+
+
+def test_system_disk(client: TestClient) -> None:
+    response = client.get("/api/system/disk")
+    assert response.status_code == 200
+    data = response.json()
+    assert "partitions" in data
+    assert isinstance(data["partitions"], list)
+    assert len(data["partitions"]) >= 1
+    for part in data["partitions"]:
+        assert "mountpoint" in part
+        assert "total" in part
+        assert "used" in part
+        assert "free" in part
+        assert "percent" in part
+
+
+def test_system_network(client: TestClient) -> None:
+    response = client.get("/api/system/network")
+    assert response.status_code == 200
+    data = response.json()
+    for key in ("bytes_sent", "bytes_recv", "packets_sent", "packets_recv"):
+        assert key in data
+        assert isinstance(data[key], int)
+
+
+def test_system_processes(client: TestClient) -> None:
+    response = client.get("/api/system/processes")
+    assert response.status_code == 200
+    data = response.json()
+    assert "processes" in data
+    assert isinstance(data["processes"], list)
+
+
+def test_system_gpu(client: TestClient) -> None:
+    response = client.get("/api/system/gpu")
+    assert response.status_code == 200
+    data = response.json()
+    assert "available" in data
+    assert "gpus" in data
+    assert isinstance(data["gpus"], list)
+
+
+def test_system_metrics(client: TestClient) -> None:
+    response = client.get("/api/system/metrics")
+    assert response.status_code == 200
+    data = response.json()
+    for key in ("cpu", "memory", "disk", "network", "gpu", "processes"):
+        assert key in data

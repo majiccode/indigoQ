@@ -32,6 +32,7 @@ from .models import (
 from .ollama import router as ollama_router
 from .store import GraphStore
 from .studio import router as studio_router
+from .system import router as system_router
 
 APP_VERSION = "0.1.5"
 CONTENT_SOURCE_TYPE = "content-source"
@@ -66,6 +67,7 @@ def create_app(data_file: Path | None = None) -> FastAPI:
     )
     app.include_router(ollama_router)
     app.include_router(studio_router)
+    app.include_router(system_router)
 
     @app.exception_handler(ValueError)
     async def invalid_file_reference(_request, error: ValueError) -> JSONResponse:

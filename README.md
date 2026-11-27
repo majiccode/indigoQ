@@ -226,7 +226,7 @@ Sixteen additional mini-apps are available from the workspace type picker:
 | **HTTP / API Client** | HTTP methods, headers/body, response status/headers/timing, cancellation, and explicitly started periodic refresh. Responses publish text and, where possible, a table. Requests run through the backend; redirects are returned rather than followed. |
 | **Transform** | JSON-path extraction (`$.items[0].name`), array filtering by field substring, per-record templates (`{{field}}`), regex extraction in a time-limited worker. Run explicitly to publish text/table results. |
 | **SQL Explorer** | Read-only SQLite queries against connected `input1`, `input2`, … tables. Joins, grouping, and aggregates. Isolated backend memory database, 3-second query limit, 10,000 output rows. |
-| **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
+| **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, Word (.docx) documents, PDF text extraction, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
 | **Diff / Compare** | Two local or connected text sources, JSON formatting, line-level additions/removals, and publish-right-side action. |
 | **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces and saves `edited.png` into any connected FileWorkspace; connect to a vision-capable Ollama model. |
 | **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
@@ -234,6 +234,7 @@ Sixteen additional mini-apps are available from the workspace type picker:
 | **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
 | **Chart Studio** | Connected tables as line, scatter, grouped bar, or histogram charts; X/Y/series mapping, hover values, log axes, reference line, zoom/pan, and brush selection. Publish all or selected rows as a table snapshot; export SVG or PNG, with PNG saved to outgoing FileWorkspaces. |
 | **Speech to Text** | Full-workspace live microphone FFT, red recording toggle, language selection, interim transcription preview, and persistent transcript with text download. Wire → TextEditor to append finalized phrases or → Ollama to dictate its prompt; other studio text consumers can read the live output. Uses browser Web Speech recognition, which may require internet. |
+| **Text to Speech** | Reads connected text aloud using your browser's built-in speech synthesis (no LLM or network needed). Connect Document Preview, TextEditor, Ollama, or another text source → here. Use **Speak it all** to read the full current text immediately, or **Follow** to read only text added after activation (for live/typing sources such as a TextEditor). Voice, rate, and pitch are honored from the dropdowns; click **Stop** to cancel. Voice options depend on your operating system. |
 
 Speech to Text starts microphone access only after **Enable mic** or **Record**.
 Stopping recording leaves the microphone spectrum running; **Mic off** releases
@@ -245,6 +246,31 @@ For a complete voice-to-data pipeline, load **Voice Expense Detective**: dictate
 purchases, extract structured records with Ollama, aggregate them with SQL, and
 explore spending in Chart Studio. Sample results are preloaded so the chart works
 before you record or run a model; PNG exports go into Evidence Files.
+
+### Text to Speech — read documents and text aloud
+
+Connect a text source such as **Document Preview** → **Text to Speech**, wait for
+the document text to finish loading, then:
+
+- **Speak it all** — reads the full current text right away. Best for static
+  content like a PDF or Markdown document that won't change.
+- **Follow** — arms follow mode. It marks all existing text as already spoken and
+  reads only text that arrives afterward, so it's ideal for live/typing sources
+  such as a connected TextEditor where you want new sentences read as you type.
+- **Stop** — cancels in-flight speech.
+
+Voice, rate, and pitch are taken from the dropdowns and applied to each
+utterance. Voice options depend on your operating system's installed voices, and
+browser speech synthesis requires a user gesture (the button click) to start.
+
+Try these connections:
+
+1. **Document Preview → Text to Speech:** open a PDF or Markdown document, wait
+   for its text to extract, then press **Speak it all** to hear it read aloud.
+2. **TextEditor → Text to Speech:** turn on **Follow**, then type in the editor;
+   each new sentence is read as it appears.
+3. **Ollama → Text to Speech:** run an Ollama generation, then press **Speak it
+   all** to hear the model's response read aloud.
 
 The **Chart Studio** example in the Examples menu uses a small weekly-sales table
 with two regions. Brush points and publish them, import the result in Selected

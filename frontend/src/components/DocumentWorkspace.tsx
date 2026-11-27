@@ -8,7 +8,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { getWorkspaceType, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { downloadText, fileText, workspaceFiles } from "@/lib/workspaceData";
-import { documentSource, isPdf } from "@/lib/documentData";
+import { documentSource, docxText, isDocx, isPdf } from "@/lib/documentData";
 import { StudioShell, useStudio } from "./StudioKit";
 import PdfDocument from "./PdfDocument";
 
@@ -22,6 +22,7 @@ export default function DocumentWorkspace(props: TypedWorkspaceProps) {
   const selected = documentSource(sources, token, app.state.text);
   const file = selected.file;
   const pdf = file && isPdf(file);
+  const docx = file && isDocx(file);
   const [loaded, setLoaded] = useState<{ key: string; text: string; error?: string } | null>(null);
   const key = file ? JSON.stringify([file.id, file.dataUrl]) : "";
   const text = file ? loaded?.key === key ? loaded.text : "" : selected.text;
@@ -30,12 +31,19 @@ export default function DocumentWorkspace(props: TypedWorkspaceProps) {
   const latest = useRef(app);
   useEffect(() => { latest.current = app; });
   useEffect(() => {
-    if (!file || pdf) return;
+    if (!file || pdf || docx) return;
     let active = true;
     void fileText(file).then((text) => { if (active) setLoaded({ key, text }); })
       .catch((reason) => { if (active) setLoaded({ key, text: "", error: reason instanceof Error ? reason.message : "Unable to read document" }); });
     return () => { active = false; };
-  }, [file, pdf, key]);
+  }, [file, pdf, docx, key]);
+  useEffect(() => {
+    if (!file || !docx) return;
+    let active = true;
+    void docxText(file.dataUrl).then((text) => { if (active) setLoaded({ key, text }); })
+      .catch((reason) => { if (active) setLoaded({ key, text: "", error: reason instanceof Error ? reason.message : "Unable to read document" }); });
+    return () => { active = false; };
+  }, [file, docx, key]);
   useEffect(() => {
     if (latest.current.state.output !== text) latest.current.patch({ output: text });
   }, [text, app.state.output]);
@@ -53,6 +61,7 @@ export default function DocumentWorkspace(props: TypedWorkspaceProps) {
     {file && <small className="tool-hint">{file.name}</small>}
     {pdf && file ? <PdfDocument key={key} file={file} onText={(text) => setLoaded({ key, text })} onError={(error) => setLoaded({ key, text: "", error })} /> : <MarkdownDocument text={text} />}
     {pdf && !loading && !error && !text.trim() && <small className="tool-hint">This PDF has no extractable text. Its pages can be previewed, but comparing scanned documents requires OCR.</small>}
+    {docx && !loading && !error && !text.trim() && <small className="tool-hint">This Word document has no extractable text.</small>}
     <small className="tool-hint">The selected document’s text is published automatically. Connect two Document Preview workspaces to Diff / Compare and choose one for each side.</small>
   </StudioShell>;
 }

@@ -50,6 +50,7 @@ export function tableCSV(table: TableState) {
 
 export function workspaceText(workspace: Workspace): string {
   if (workspace.type === "text-editor") return workspace.editor?.text ?? "";
+  if (workspace.tool?.kind === "document-preview") return workspace.tool.output ?? "";
   if (workspace.tool?.kind === "ollama") return workspace.tool.output;
   if (workspace.tool?.kind === "data-table") return tableCSV(workspace.tool);
   if (workspace.tool?.kind === "math-lab") return workspace.tool.expressions;

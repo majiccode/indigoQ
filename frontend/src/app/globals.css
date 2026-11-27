@@ -1487,3 +1487,18 @@ input:focus-visible {
   text-transform: uppercase;
   animation: pulse-dot 1.1s ease-in-out infinite;
 }
+
+/* System Monitor charts */
+.sys-charts { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 0; }
+.sys-chart { flex: 1 1 300px; min-width: 240px; background: #111911; border: 1px solid #364232; border-radius: 6px; padding: 10px; }
+.sys-chart-header { font-size: 11px; font-weight: 600; color: #bac9ae; margin-bottom: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+.sys-gpu-card { padding: 8px; background: #0b1010; border: 1px solid #364232; border-radius: 4px; margin-bottom: 6px; }
+.sys-gpu-card strong { display: block; font-size: 11px; color: #eef0ff; margin-bottom: 4px; }
+.sys-bar { width: 100%; height: 6px; background: #364232; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+.sys-bar-fill { height: 100%; border-radius: 3px; }
+.sys-label { font-size: 10px; color: #9cad91; }
+.sys-bar-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.sys-bar-row .sys-label { min-width: 120px; font-size: 11px; color: #eef0ff; }
+.stat-card { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: #111911; border: 1px solid #364232; border-radius: 5px; min-width: 70px; }
+.stat-card strong { font-size: 10px; color: #9cad91; text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-card span { font-size: 14px; font-weight: 600; color: #eef0ff; font-variant-numeric: tabular-nums; }
