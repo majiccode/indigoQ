@@ -82,7 +82,7 @@ jobs:
 
           ```sh
           curl -fsSL https://github.com/majiccode/indigoQ/releases/latest/download/install.sh | sh
-          indigoq
+          ~/.local/bin/indigoq
           ```
 
           Windows PowerShell:
@@ -92,7 +92,7 @@ jobs:
           indigoq
           ```
 
-          Then open <http://127.0.0.1:8787>. See `INSTALL.md` for manual downloads, data locations, and Ollama setup.
+          Then open <http://127.0.0.1:8787>. Keep Terminal open while using indigoQ; press `Ctrl+C` to stop. See `INSTALL.md` for manual downloads, data locations, and Ollama setup.
           EOF
           )
             gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "indigoQ $GITHUB_REF_NAME" --generate-notes --notes "$notes"

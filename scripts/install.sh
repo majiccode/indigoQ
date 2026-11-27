@@ -69,9 +69,14 @@ chmod +x "$BIN_DIR/indigoq"
 
 info ""
 info "indigoQ $VERSION installed."
-info "  Run:  indigoq"
+if [ "$BIN_DIR" = "$HOME/.local/bin" ]; then
+  info '  Run:  ~/.local/bin/indigoq'
+else
+  info "  Run:  \"$BIN_DIR/indigoq\""
+fi
 info "  Open: http://127.0.0.1:8787"
+info 'Keep Terminal open while using indigoQ; press Ctrl+C to stop.'
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
-  *) info "Add $BIN_DIR to PATH: export PATH=\"$BIN_DIR:\$PATH\"" ;;
+  *) info "Optional: add $BIN_DIR to PATH to run indigoq by name: export PATH=\"$BIN_DIR:\$PATH\"" ;;
 esac

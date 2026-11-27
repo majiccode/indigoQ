@@ -10,7 +10,7 @@ Ollama and its models are optional and installed separately.
 
 ```sh
 curl -fsSL https://github.com/majiccode/indigoQ/releases/latest/download/install.sh | sh
-indigoq
+~/.local/bin/indigoq
 ```
 
 Then open <http://127.0.0.1:8787>. Keep the terminal running; press `Ctrl+C` to stop.
@@ -18,6 +18,10 @@ Then open <http://127.0.0.1:8787>. Keep the terminal running; press `Ctrl+C` to 
 The installer detects your OS and architecture, installs to `~/.local/indigoq`,
 creates a launcher at `~/.local/bin/indigoq`, and removes the macOS quarantine
 flag so the unsigned bundle can run.
+
+Run `~/.local/bin/indigoq` each time you want to start the app. This works without
+adding the launcher directory to your `PATH`. If you set `INDIGOQ_BIN_DIR`, use
+the launcher path printed by the installer instead.
 
 ### Windows
 
