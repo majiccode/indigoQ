@@ -8,6 +8,42 @@ persisted locally and to a small FastAPI service.
 - **Backend** — FastAPI + Pydantic, atomic JSON store (`backend/`)
 - **Tooling** — [moon](https://moonrepo.dev) task runner, [uv](https://docs.astral.sh/uv/) for Python, pnpm for Node
 
+## See it in action
+
+Connect live workspaces on the canvas, then open any workspace fullscreen to
+explore the details. These screenshots show examples included with indigoQ.
+
+### Interactive Studio — connect an experiment
+
+Shared controls drive a spring simulation, a mathematical curve, and an HTML
+mini-app, with a dashboard bringing the experiment together.
+
+[![Interactive Studio canvas showing connected controls, simulation, live curve, HTML playground, and dashboard](docs/screenshots/interactive-studio.png)](docs/screenshots/interactive-studio.png)
+
+[Explore the example graph](frontend/public/examples/interactive-studio.json)
+
+### Chart Studio — turn tables into interactive charts
+
+Compare weekly sales across regions, switch chart types, brush points to select
+rows, and export charts as PNG or SVG.
+
+[![Chart Studio displaying a two-series weekly sales chart for North and South regions](docs/screenshots/chart-studio.png)](docs/screenshots/chart-studio.png)
+
+[Explore the example graph](frontend/public/examples/chart-studio.json)
+
+### Oscillator Lab — equations become live plots
+
+Connect an equation editor to Math Lab and adjust amplitude, frequency, and
+damping with live knobs. Export sampled curves for further analysis.
+
+[![Oscillator Lab with amplitude, frequency, and damping knobs above a damped sine wave and its envelopes](docs/screenshots/oscillator-lab.png)](docs/screenshots/oscillator-lab.png)
+
+[Explore the example graph](frontend/public/examples/oscillator-lab.json)
+
+**Try them:** [download a portable build](https://github.com/majiccode/indigoQ/releases),
+open the file-menu icon in the app header, and choose **Examples**. Each example
+loads a complete canvas you can explore and edit.
+
 ## Prerequisites
 
 For the **pre-built portable bundle**, see
