@@ -1,6 +1,6 @@
 [project]
 name = "indigoq-api"
-version = "0.1.4"
+version = "0.1.5"
 description = "Graph persistence API for the indigoQ infinite workspace canvas."
 readme = "README.md"
 requires-python = ">=3.11"
