@@ -1,39 +1,15 @@
 {
-  "name": "indigoq-desktop",
+  "name": "indigoq",
   "version": "0.1.1",
   "private": true,
   "description": "An infinite workspace canvas for data, code, and local AI",
   "author": "majiccode",
   "homepage": "https://github.com/majiccode/indigoQ",
   "repository": { "type": "git", "url": "https://github.com/majiccode/indigoQ.git" },
-  "main": "desktop/main.cjs",
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:release": "node scripts/build-release.mjs",
-    "package:desktop": "electron-builder --publish never",
-    "test:package": "node scripts/smoke-test.mjs",
-    "test:desktop": "electron desktop/main.cjs --smoke-test"
+    "test:package": "node scripts/smoke-test.mjs"
   },
-  "devDependencies": {
-    "electron": "^42.0.0",
-    "electron-builder": "^26.0.12"
-  },
-  "packageManager": "pnpm@10.33.2",
-  "build": {
-    "appId": "com.majiccode.indigoq",
-    "productName": "indigoQ",
-    "artifactName": "indigoQ-${version}-${os}-${arch}.${ext}",
-    "directories": { "output": "dist/desktop" },
-    "files": ["desktop/**/*", "package.json"],
-    "extraResources": [{ "from": "dist/server/indigoq-server", "to": "server" }],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"],
-      "identity": "-",
-      "hardenedRuntime": false
-    },
-    "win": { "target": ["nsis", "zip"], "signAndEditExecutable": false },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
-    "linux": { "target": ["AppImage", "tar.gz"], "category": "Development", "maintainer": "majiccode" }
-  }
+  "packageManager": "pnpm@10.33.2"
 }

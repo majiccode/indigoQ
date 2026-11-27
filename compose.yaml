@@ -1,6 +1,6 @@
 services:
   indigoq:
-    image: ghcr.io/majiccode/indigoq:${INDIGOQ_VERSION:-latest}
+    build: .
     ports:
       - "127.0.0.1:3000:8787"
     volumes:

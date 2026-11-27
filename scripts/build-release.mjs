@@ -6,13 +6,13 @@ import { fileURLToPath } from "node:url";
 process.chdir(fileURLToPath(new URL("../", import.meta.url)));
 const argv = process.argv.slice(2);
 const help = `Usage:
-  node scripts/build-release.mjs --build-only [--desktop]
+  node scripts/build-release.mjs --build-only
   node scripts/build-release.mjs <version> [--wait]
 
-Build-only: install dependencies, check, and build packages for this machine.
+Build-only: install dependencies, check, and build the portable bundle for this machine.
 Release: require a clean main branch, run checks, update versions, commit,
-push main and v<version>, then trigger cross-platform builds on GitHub Actions.
-The release is published only after all platform builds and Docker checks pass.
+push main and v<version>, then trigger cross-platform bundle builds on GitHub Actions.
+The release is published only after all platform bundles pass their smoke tests.
 Use --wait to wait for the workflow and report its result.
 Requirements: Node 22+, pnpm 10.33.2, uv 0.11+, Git, authenticated gh.
 `;
@@ -25,10 +25,9 @@ function run(command, args, capture = false, env = {}) {
 }
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 if (argv.includes("--build-only")) {
-  if (argv.some(arg => !["--build-only", "--desktop"].includes(arg))) throw new Error(help);
-  run(process.execPath, ["scripts/build.mjs", "--check", ...(argv.includes("--desktop") ? ["--desktop"] : [])]);
+  if (argv.some(arg => arg !== "--build-only")) throw new Error(help);
+  run(process.execPath, ["scripts/build.mjs", "--check"]);
   run(process.execPath, ["scripts/smoke-test.mjs"]);
-  if (argv.includes("--desktop")) run(process.execPath, ["scripts/desktop-smoke.mjs"]);
   process.exit(0);
 }
 const version = argv[0].replace(/^v/, "");

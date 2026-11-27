@@ -10,10 +10,11 @@ persisted locally and to a small FastAPI service.
 
 ## Prerequisites
 
-For **pre-built desktop apps, portable bundles, and Docker**, see
+For the **pre-built portable bundle**, see
 [installation instructions](docs/INSTALL.md) and
-[GitHub Releases](https://github.com/majiccode/indigoQ/releases).
-The prerequisites below are only for source development.
+[GitHub Releases](https://github.com/majiccode/indigoQ/releases). The bundle
+includes Python, the backend, and the frontend; no runtime dependencies are
+needed. The prerequisites below are only for source development.
 
 - moon `>= 2`
 - uv `>= 0.11` (Python 3.11+; pinned to 3.13 via `backend/.python-version`)
@@ -56,16 +57,16 @@ Run the frontend expression/data-flow tests with `pnpm --dir frontend test`.
 ## Build and release
 
 ```bash
-# Build packages for the current machine, including the desktop app:
-node scripts/build-release.mjs --build-only --desktop
+# Build the portable bundle for the current machine:
+node scripts/build-release.mjs --build-only
 
 # From clean, up-to-date main: version, commit, tag, push, and publish via Actions:
-node scripts/build-release.mjs 0.1.1 --wait
+node scripts/build-release.mjs 0.1.2 --wait
 ```
 
-The tag workflow builds macOS arm64/x64, Windows x64, Linux x64, and Docker
-amd64/arm64. Desktop installers and archives, portable browser/server bundles,
-checksums, and Docker Compose are published together after checks pass.
+The tag workflow builds macOS arm64/x64, Windows x64, and Linux x64 bundles.
+The self-contained bundles, one-line installers, checksums, and installation
+instructions are published together after checks pass.
 See [the release guide](docs/INSTALL.md#build-and-publish-from-source) for prerequisites.
 
 ## Controls

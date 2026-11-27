@@ -6,7 +6,7 @@ import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 process.chdir(root);
 const args = new Set(process.argv.slice(2));
-const allowed = new Set(["--check", "--desktop", "--skip-install"]);
+const allowed = new Set(["--check", "--skip-install"]);
 for (const arg of args) if (!allowed.has(arg)) throw new Error(`Unknown option: ${arg}`);
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 function run(command, argv, cwd = root, env = {}) {
@@ -45,6 +45,4 @@ if (process.platform === "win32") {
   writeFileSync(path.join(bundle, "Start indigoQ.command"), '#!/bin/sh\ncd "$(dirname "$0")"\nexec ./indigoq-server "$@"\n', { mode: 0o755 });
   run("tar", ["-czf", path.join(root, "dist", `${name}.tar.gz`), "-C", path.dirname(bundle), name]);
 }
-if (args.has("--desktop")) run(pnpm, ["exec", "electron-builder", "--publish", "never"], root, { CSC_IDENTITY_AUTO_DISCOVERY: "false" });
-if (args.has("--desktop") && process.platform === "darwin") run(process.execPath, ["scripts/verify-mac.mjs"]);
 console.log(`Built indigoQ ${version} for ${process.platform}/${process.arch} in dist/`);
