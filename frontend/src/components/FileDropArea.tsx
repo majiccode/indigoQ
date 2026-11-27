@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 export default function FileDropArea({ children, onFilesDrop }: {
-  children: ReactNode;
+  children?: ReactNode;
   onFilesDrop: (files: File[]) => void;
 }) {
   const [dragging, setDragging] = useState(false);

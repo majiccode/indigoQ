@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import BlankWorkspace from "./BlankWorkspace";
 import "./workspaceTypes";
-import { getWorkspaceType, getWorkspaceTypes } from "@/lib/workspaceRegistry";
+import { getWorkspaceType } from "@/lib/workspaceRegistry";
 import { enqueueWorkspaceOperation, uploadContents, workspaceOperation, type WorkspaceOperation } from "@/lib/graphApi";
 import type { Graph, Workspace as WorkspaceModel } from "@/lib/types";
 import { autoUpdateEnabled } from "@/lib/autoUpdate";
@@ -22,7 +22,6 @@ interface WorkspaceProps {
 export default function Workspace({ workspace, graph, onGraphChange, onWorkspaceChange, onUpload, onBeforeOperation, onExpand }: WorkspaceProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [choosingType, setChoosingType] = useState(false);
   const definition = getWorkspaceType(workspace.type);
   const [inputSnapshot, setInputSnapshot] = useState(graph);
   const autoUpdate = autoUpdateEnabled(workspace);
@@ -60,26 +59,16 @@ export default function Workspace({ workspace, graph, onGraphChange, onWorkspace
   };
 
   return (
-    <section className="workspace-content" data-workspace-id={workspace.id} aria-label={`${workspace.name} contents`}>
-      <div className="workspace-type-toolbar" onDoubleClick={(event) => { event.stopPropagation(); onExpand?.(); }}>
-        <button type="button" className="workspace-type-button" aria-label="Choose workspace type"
-          disabled={workspace.type !== null} onClick={() => setChoosingType(!choosingType)}>
-          <span aria-hidden>◇</span> {definition?.name ?? "Choose workspace type"}
-        </button>
-        <span className="workspace-io-label">{definition ? `${definition.inputs.join(", ") || "—"} → ${definition.outputs.join(", ") || "—"}` : "Untyped"}</span>
-        {!!definition?.inputs.length && <><label className="workspace-auto-update" title="Follow incoming data. Ollama Run, recording and playback remain manual."><input type="checkbox" aria-label="Auto-update connected inputs" checked={autoUpdate} onChange={(event) => {
-          const enabled = event.target.checked;
-          setInputSnapshot(graph);
-          void operate({ kind: "autoUpdate", enabled }).catch((reason) => setError((reason as Error).message));
-        }} />Auto-update</label>{!autoUpdate && <button type="button" onClick={() => setInputSnapshot(graph)}>Refresh inputs</button>}</>}
-        {onExpand && <button type="button" aria-label="Open workspace fullscreen" title="Open workspace fullscreen" onClick={onExpand}>⛶</button>}
-      </div>
-      {choosingType && workspace.type === null && (
-        <div className="workspace-type-picker" role="menu" aria-label="Workspace types" onDoubleClick={(event) => event.stopPropagation()}>
-          {getWorkspaceTypes().map((type) => <button key={type.type} type="button" role="menuitem" onClick={async () => {
-            try { await operate({ kind: "type", type: type.type }); setChoosingType(false); }
-            catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to set type"); }
-          }}><strong>{type.name}</strong><small>{type.description}</small></button>)}
+    <section className={`workspace-content${workspace.type === null ? " workspace-untyped" : ""}`} data-workspace-id={workspace.id} aria-label={`${workspace.name} contents`}>
+      {workspace.type !== null && (
+        <div className="workspace-type-toolbar" onDoubleClick={(event) => { event.stopPropagation(); onExpand?.(); }}>
+          {definition && <span className="workspace-io-label">{definition.inputs.join(", ") || "—"} → ${definition.outputs.join(", ") || "—"}</span>}
+          {!!definition?.inputs.length && <><label className="workspace-auto-update" title="Follow incoming data. Ollama Run, recording and playback remain manual."><input type="checkbox" aria-label="Auto-update connected inputs" checked={autoUpdate} onChange={(event) => {
+            const enabled = event.target.checked;
+            setInputSnapshot(graph);
+            void operate({ kind: "autoUpdate", enabled }).catch((reason) => setError((reason as Error).message));
+          }} />Auto-update</label>{!autoUpdate && <button type="button" onClick={() => setInputSnapshot(graph)}>Refresh inputs</button>}</>}
+          {onExpand && <button type="button" aria-label="Open workspace fullscreen" title="Open workspace fullscreen" onClick={onExpand}>⛶</button>}
         </div>
       )}
       <div className="workspace-typed-content">

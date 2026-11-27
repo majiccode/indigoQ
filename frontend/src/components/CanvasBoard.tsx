@@ -35,11 +35,12 @@ import {
   worldToScreen,
   type Route,
 } from "@/lib/geometry";
-import { enqueueWorkspaceOperation, fetchGraph, importGraph, saveGraph, uploadContents } from "@/lib/graphApi";
+import { enqueueWorkspaceOperation, fetchGraph, importGraph, saveGraph, uploadContents, workspaceOperation } from "@/lib/graphApi";
 import { flushWorkspaces } from "@/lib/workspaceFlush";
 import { createSampleGraph } from "@/lib/graph";
 import WorkspaceContent from "@/components/Workspace";
 import GraphWorkspace from "@/components/GraphWorkspace";
+import { getWorkspaceTypes } from "@/lib/workspaceRegistry";
 import type { HoverState, InteractionMode, WireTarget } from "@/lib/interaction";
 import {
   readCleared,
@@ -149,7 +150,10 @@ export default function CanvasBoard({
   const [sync, setSync] = useState<SyncState>("loading");
   const [zoomPct, setZoomPct] = useState(100);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [choosingType, setChoosingType] = useState(false);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [graphEpoch, setGraphEpoch] = useState(0);
+  const [, setDragTick] = useState(0);
   const router = useRouter();
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -213,8 +217,32 @@ export default function CanvasBoard({
     [queueRemoteSave],
   );
 
+  const setWorkspaceType = useCallback(async (type: string) => {
+    const id = selectedRef.current;
+    if (!id) return;
+    const previous = graphRef.current.workspaces.find((item) => item.id === id);
+    if (!previous || previous.type !== null) return;
+    await enqueueWorkspaceOperation(async () => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      const updated = await workspaceOperation(id, { kind: "type", type });
+      const next = { ...graphRef.current, workspaces: graphRef.current.workspaces.map((item) => {
+        const remote = updated.workspaces.find((w) => w.id === item.id);
+        return remote ? { ...item, type: remote.type } : item;
+      }) };
+      graphRef.current = next;
+      sceneRevRef.current += 1;
+      setGraph(next);
+      writeLocalGraph(next);
+      setChoosingType(false);
+    });
+  }, []);
+
   const selectWorkspace = useCallback((id: string | null) => {
     selectedRef.current = id;
+    setSelectedWorkspaceId(id);
   }, []);
 
   const cancelRename = useCallback(() => {
@@ -308,6 +336,7 @@ export default function CanvasBoard({
         graphRef.current = next;
         sceneRevRef.current += 1;
         selectedRef.current = null;
+        setSelectedWorkspaceId(null);
         hoverRef.current = EMPTY_HOVER;
         modeRef.current = { kind: "idle" };
         cancelRename();
@@ -490,6 +519,7 @@ export default function CanvasBoard({
       sceneRevRef.current += 1;
       setGraph(next);
       selectedRef.current = null;
+      setSelectedWorkspaceId(null);
       hoverRef.current = EMPTY_HOVER;
       modeRef.current = { kind: "idle" };
       writeLocalGraph(next);
@@ -556,10 +586,11 @@ export default function CanvasBoard({
     if (!canvas) return;
 
     const handleWheel = (event: WheelEvent) => {
-      // Let an interactive workspace scroll its own grid/viewer. Modified wheel
-      // remains graph zoom; preview surfaces bubble wheel events to the graph.
+      // Let an interactive workspace scroll its own grid/viewer, and let the
+      // type-chooser dropdown scroll its own list without zooming the canvas.
       if (!event.ctrlKey && !event.metaKey && event.target instanceof Element &&
-          event.target.closest('.graph-workspace-content[data-detail="interactive"]')) return;
+          (event.target.closest('.graph-workspace-content[data-detail="interactive"]') ||
+           event.target.closest('.workspace-type-float'))) return;
       event.preventDefault();
       if (renamingRef.current) cancelRename();
 
@@ -1002,6 +1033,7 @@ export default function CanvasBoard({
           workspace.x = world.x - mode.offset.x;
           workspace.y = world.y - mode.offset.y;
           sceneRevRef.current += 1;
+          setDragTick((tick) => tick + 1);
         }
         return;
       }
@@ -1254,6 +1286,7 @@ export default function CanvasBoard({
     sceneRevRef.current += 1;
     setGraph(empty);
     selectedRef.current = null;
+    setSelectedWorkspaceId(null);
     modeRef.current = { kind: "idle" };
     hoverRef.current = EMPTY_HOVER;
     renamingRef.current = null;
@@ -1279,6 +1312,17 @@ export default function CanvasBoard({
       : sync === "saved"
         ? "The canvas is synced with the indigoQ API."
         : "Syncing the canvas with the indigoQ API.";
+
+  const selectedWorkspace = selectedWorkspaceId
+    ? graph.workspaces.find((item) => item.id === selectedWorkspaceId)
+    : undefined;
+  const showTypeChooser = !!selectedWorkspace && !selectedWorkspace.type;
+
+  // Position the type-chooser float above the selected workspace (screen-space, not zoom-scaled).
+  // Reads viewportRef during render to position an overlay; kept in sync via pan/zoom re-renders.
+  // eslint-disable-next-line react-hooks/refs
+  const screenPos = selectedWorkspace ? worldToScreen(viewportRef.current, { x: selectedWorkspace.x, y: selectedWorkspace.y }) : null;
+  const floatAnchor: { x: number; y: number } | null = screenPos;
 
   return (
     <div className="stage" ref={stageRef} onContextMenu={(event) => event.preventDefault()}>
@@ -1392,6 +1436,26 @@ export default function CanvasBoard({
           </GraphWorkspace>
         ))}
       </div>
+
+      {showTypeChooser && selectedWorkspace && (
+        <div className="workspace-type-float" style={{ top: floatAnchor!.y - 40, left: floatAnchor!.x + 8 }}>
+          <button type="button" className="workspace-type-float-button" aria-label="Set workspace type" onClick={() => setChoosingType(!choosingType)}>
+            <span aria-hidden>◇</span> Type
+          </button>
+          {choosingType && (
+            <div className="workspace-type-float-menu" role="menu" aria-label="Workspace types" onDoubleClick={(event) => event.stopPropagation()}>
+              {getWorkspaceTypes().map((type) => (
+                <button key={type.type} type="button" role="menuitem" onClick={async () => {
+                  try { await setWorkspaceType(type.type); }
+                  catch (reason) { setUploadError(reason instanceof Error ? reason.message : "Unable to set type"); }
+                }}>
+                  <strong>{type.name}</strong><small>{type.description}</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {graph.workspaces.length === 0 ? (
         <div className="canvas-empty" aria-hidden>

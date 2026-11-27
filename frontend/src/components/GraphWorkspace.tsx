@@ -31,6 +31,7 @@ export default function GraphWorkspace({ workspace, graphRef, viewportRef, onOpe
         container.style.transform = `translate(${screen.x}px, ${screen.y}px) scale(${viewport.scale})`;
         container.style.width = `${current.width}px`;
         container.style.height = `${Math.max(0, current.height - HEADER_HEIGHT)}px`;
+        container.style.setProperty('--checker-tile', `${32 / viewport.scale}px`);
         const nextInteractive = viewport.scale >= INTERACTION_SCALE;
         if (nextInteractive !== previousInteractive) {
           previousInteractive = nextInteractive;
