@@ -1,5 +1,9 @@
 # indigoQ
 
+[Website & workflow guides](https://majiccode.github.io/indigoQ/) ·
+[Download](https://github.com/majiccode/indigoQ/releases/latest) ·
+[Support development](https://paypal.me/pdgadams)
+
 An infinite, pannable and zoomable canvas for composing data pipelines. Draw
 workspaces anywhere, connect them with animated dataflow wires, and the graph is
 persisted locally and to a small FastAPI service.
