@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import CanvasBoard, { type CanvasBoardHandle } from "./CanvasBoard";
 import { parseGraphFile, serializeGraph } from "@/lib/graphFile";
 import { downloadText } from "@/lib/workspaceData";
+import { exportGraph } from "@/lib/graphApi";
 
 const EXAMPLES = [
   { file: "oscillator-lab", name: "Oscillator Lab", description: "Editor equations → live knobs and plots → sampled table." },
@@ -50,6 +51,8 @@ export default function IndigoQApp() {
   const [error, setError] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
   const about = useRef<HTMLDialogElement>(null);
+  const help = useRef<HTMLDialogElement>(null);
+  const fileMenu = useRef<HTMLDivElement>(null);
   const onReady = useCallback(() => setReady(true), []);
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setMessage(""); setError(false);
@@ -66,38 +69,54 @@ export default function IndigoQApp() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button type="button" className="brand" aria-label="About indigoQ" onClick={() => about.current?.showModal()}>
-          <BrandMark />
-          <div className="brand-copy">
-            <span className="brand-name">
-              indigo<span className="brand-q">Q</span>
-            </span>
-            <span className="brand-sub">workspace canvas</span>
-          </div>
-        </button>
-        <div className="topbar-meta">
-          <nav className="graph-file-actions" aria-label="Graph files" onKeyDown={(event) => { if (event.key === "Escape") setExamplesOpen(false); }}>
-            <button title="Replace the current canvas with a saved JSON graph" disabled={!ready || busy} onClick={() => fileInput.current?.click()}>Load JSON</button>
-            <button disabled={!ready || busy} onClick={() => void run(async () => {
-              if (!board.current) return;
-              const graph = await board.current.snapshot();
-              downloadText(`indigoq-${new Date().toISOString().slice(0, 10)}.json`, serializeGraph(graph), "application/json");
-              setMessage("Graph saved as JSON");
-            })}>Save JSON</button>
-            <div className="graph-examples">
-              <button disabled={!ready || busy} aria-expanded={examplesOpen} onClick={() => setExamplesOpen(!examplesOpen)}>Examples ▾</button>
-              {examplesOpen && <><button className="graph-menu-dismiss" aria-label="Close examples" onClick={() => setExamplesOpen(false)} /><div className="graph-examples-menu" aria-label="Example graphs">
-                <p>Load an example to replace the current canvas. Save JSON to keep your graph.</p>
-                {EXAMPLES.map((example) => <div key={example.file}><button onClick={() => {
-                  setExamplesOpen(false);
-                  void run(async () => {
-                    const response = await fetch(`/examples/${example.file}.json`);
-                    if (!response.ok) throw new Error("Unable to load example graph");
-                    await load(await response.text(), example.name);
-                  });
-                }}><strong>{example.name}</strong><small>{example.description}</small></button><a href={`/examples/${example.file}.json`} download>JSON ↓</a></div>)}
-              </div></>}
+        <div className="brand-group">
+          <button type="button" className="brand" aria-label="About indigoQ" onClick={() => about.current?.showModal()}>
+            <BrandMark />
+            <div className="brand-copy">
+              <span className="brand-name">
+                indigo<span className="brand-q">Q</span>
+              </span>
+              <span className="brand-sub">workspace canvas</span>
             </div>
+          </button>
+          <span className="brand-copyright">© {new Date().getFullYear()} Paul Adams</span>
+        </div>
+        <div className="topbar-meta">
+          <nav className="graph-file-actions" aria-label="App tools" onKeyDown={(event) => event.stopPropagation()}>
+            <button type="button" className="topbar-icon" aria-label="Graph files" title="Graph files" popoverTarget="graph-file-menu">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z" />
+              </svg>
+            </button>
+            <div ref={fileMenu} id="graph-file-menu" className="graph-file-menu" popover="auto" onToggle={(event) => { if (event.newState === "closed") setExamplesOpen(false); }}>
+              <button title="Replace the current canvas with a saved JSON graph" disabled={!ready || busy} onClick={() => { fileMenu.current?.hidePopover(); fileInput.current?.click(); }}>Load JSON</button>
+              <button disabled={!ready || busy} onClick={() => { fileMenu.current?.hidePopover(); void run(async () => {
+                if (!board.current) return;
+                const graph = await exportGraph(await board.current.snapshot());
+                downloadText(`indigoq-${new Date().toISOString().slice(0, 10)}.json`, serializeGraph(graph), "application/json");
+                setMessage("Graph saved as JSON");
+              }); }}>Save JSON</button>
+              <div className="graph-examples">
+                <button disabled={!ready || busy} aria-expanded={examplesOpen} aria-controls="graph-examples-menu" onClick={() => setExamplesOpen(!examplesOpen)}>Examples <span aria-hidden>{examplesOpen ? "▴" : "▾"}</span></button>
+                {examplesOpen && <div id="graph-examples-menu" className="graph-examples-menu" aria-label="Example graphs">
+                  <p>Load an example to replace the current canvas. Save JSON to keep your graph.</p>
+                  {EXAMPLES.map((example) => <div key={example.file}><button onClick={() => {
+                    setExamplesOpen(false);
+                    fileMenu.current?.hidePopover();
+                    void run(async () => {
+                      const response = await fetch(`/examples/${example.file}.json`);
+                      if (!response.ok) throw new Error("Unable to load example graph");
+                      await load(await response.text(), example.name);
+                    });
+                  }}><strong>{example.name}</strong><small>{example.description}</small></button><a href={`/examples/${example.file}.json`} download>JSON ↓</a></div>)}
+                </div>}
+              </div>
+            </div>
+            <button type="button" className="topbar-icon" aria-label="Help" title="Help" aria-haspopup="dialog" onClick={() => help.current?.showModal()}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 2-2.5 3.7" /><path d="M12 16.5h.01" />
+              </svg>
+            </button>
           </nav>
           <input ref={fileInput} hidden aria-label="Load graph JSON file" type="file" accept=".json,application/json" onChange={(event) => {
             const file = event.target.files?.[0];
@@ -110,6 +129,31 @@ export default function IndigoQApp() {
         <div className="about-dialog-content"><button type="button" className="about-close" aria-label="Close about indigoQ" onClick={() => about.current?.close()}>×</button>
           <BrandMark /><h2 id="about-title">indigoQ</h2><p>© {new Date().getFullYear()} Paul Adams</p>
           <a href="https://github.com/majiccode" target="_blank" rel="noopener noreferrer">github.com/majiccode ↗</a>
+        </div>
+      </dialog>
+      <dialog ref={help} className="about-dialog help-dialog" aria-labelledby="help-title" onKeyDown={(event) => event.stopPropagation()} onClick={(event) => { if (event.target === event.currentTarget) help.current?.close(); }}>
+        <div className="help-dialog-content">
+          <button type="button" className="about-close" aria-label="Close Help" onClick={() => help.current?.close()}>×</button>
+          <h2 id="help-title">Help</h2>
+          <p>Canvas controls & keyboard shortcuts</p>
+          <dl className="help-shortcuts">
+            <div><dt><kbd>Right-drag empty space</kbd></dt><dd>Create a workspace</dd></div>
+            <div><dt><kbd>Left-drag empty space</kbd></dt><dd>Pan the canvas</dd></div>
+            <div><dt><kbd>⌘</kbd> + left-drag</dt><dd>Draw a rectangle to zoom to that area</dd></div>
+            <div><dt><kbd>Space</kbd> + drag</dt><dd>Pan the canvas</dd></div>
+            <div><dt><kbd>Scroll empty canvas</kbd></dt><dd>Zoom in / out at the cursor</dd></div>
+            <div><dt><kbd>⌘ / Ctrl</kbd> + scroll</dt><dd>Zoom the canvas</dd></div>
+            <div><dt><kbd>Drag corner</kbd></dt><dd>Resize a workspace</dd></div>
+            <div><dt><kbd>Drag header</kbd></dt><dd>Move a workspace</dd></div>
+            <div><dt><kbd>Drag border</kbd></dt><dd>Connect workspaces</dd></div>
+            <div><dt><kbd>Double-click body</kbd></dt><dd>Open a workspace</dd></div>
+            <div><dt><kbd>Double-click header</kbd></dt><dd>Rename a workspace</dd></div>
+            <div><dt><kbd>Delete</kbd></dt><dd>Remove the selected workspace</dd></div>
+            <div><dt><kbd>Enter</kbd></dt><dd>Rename the selected workspace</dd></div>
+            <div><dt><kbd>+</kbd> / <kbd>−</kbd></dt><dd>Zoom in / out</dd></div>
+            <div><dt><kbd>0</kbd></dt><dd>Fit the canvas to view</dd></div>
+            <div><dt><kbd>Escape</kbd></dt><dd>Cancel the current action</dd></div>
+          </dl>
         </div>
       </dialog>
       {(message || busy) && <div className={`graph-file-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}><span>{busy ? "Working…" : message}</span>{!busy && <button aria-label="Dismiss message" onClick={() => setMessage("")}>×</button>}</div>}

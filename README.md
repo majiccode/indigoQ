@@ -60,13 +60,22 @@ Run the frontend expression/data-flow tests with `pnpm --dir frontend test`.
 # Build the portable bundle for the current machine:
 node scripts/build-release.mjs --build-only
 
-# From clean, up-to-date main: version, commit, tag, push, and publish via Actions:
-node scripts/build-release.mjs 0.1.2 --wait
+# From clean, up-to-date main: bump patch, check, commit, tag, push, and publish:
+./release.sh
+
+# Optional: larger bump, explicit version, preview, or don't wait for Actions:
+./release.sh minor
+./release.sh 1.0.0
+./release.sh --dry-run
+./release.sh --no-wait
 ```
 
 The tag workflow builds macOS arm64/x64, Windows x64, and Linux x64 bundles.
 The self-contained bundles, one-line installers, checksums, and installation
 instructions are published together after checks pass.
+`./release.sh` reads the current version, increments the patch version (for example,
+`0.1.4` → `0.1.5`), and waits for Actions to finish before printing the release URL.
+Commit your application changes first; the script commits the version bump for you.
 See [the release guide](docs/INSTALL.md#build-and-publish-from-source) for prerequisites.
 
 ## Controls

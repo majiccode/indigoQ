@@ -119,6 +119,21 @@ Data is stored outside the install directory:
 Set `INDIGOQ_DATA_FILE` to override the graph path. Use **Save JSON / Load JSON**
 to move work between machines.
 
+Uploaded and generated files are stored as binaries next to the graph, in
+`files/ws-<workspace-id>/<content-hash>`. The graph stores file metadata and a URL
+reference, rather than base64 contents. Each workspace owns its own folder;
+removing a file deletes its binary when no other entry in that workspace uses it,
+and deleting a workspace removes its folder. Identical files in other workspaces
+are retained. Existing base64 graphs migrate automatically on first load.
+
+For a filesystem backup, copy **both `graph.json` and the `files/` directory**.
+**Save JSON** produces a portable, self-contained export by embedding files in the
+download only; importing it restores binary storage. In development the default
+location is `backend/data/graph.json`, with binaries in `backend/data/files/`.
+
+FileWorkspace offers **Grid** and **List** views. List shows file name, type, and
+size. Use the trash icon on a file to remove it.
+
 ## Ollama (optional)
 
 Portable builds connect to Ollama at `http://127.0.0.1:11434`.
@@ -158,12 +173,27 @@ Outputs are in `dist/`. Cross-platform bundles are built on their native GitHub
 runners. From a clean, up-to-date `main` branch, publish a new version with:
 
 ```sh
-node scripts/build-release.mjs 0.1.2 --wait
+./release.sh
 ```
 
-This command runs checks, updates application versions and the Python lockfile,
+This command reads the current version and bumps the patch version automatically
+(for example, `0.1.4` → `0.1.5`). Commit your application changes first. No manual
+tag creation or selection in GitHub Actions is needed.
+
+```sh
+./release.sh minor       # 0.1.4 → 0.2.0
+./release.sh major       # 0.1.4 → 1.0.0
+./release.sh 1.2.3       # Choose an explicit version
+./release.sh --dry-run   # Preview the plan without changing anything
+./release.sh --no-wait   # Start the builds and return immediately
+```
+
+The script runs checks, updates application versions and the Python lockfile,
 commits changed version files, creates an annotated tag, and atomically pushes
 main and the tag to origin. GitHub Actions builds and tests the macOS arm64/x64,
 Linux x64, and Windows x64 bundles, then publishes the GitHub release with the
 bundles, one-line installers, these instructions, and checksums. No signing
-credentials are required.
+credentials are required. By default it waits for the workflow to complete and
+prints the release URL. If a GitHub build fails after the tag was pushed, fix the
+failure and re-run the failed jobs in Actions, or make a fix and release a new
+patch version. To watch an existing run, use `gh run watch`.

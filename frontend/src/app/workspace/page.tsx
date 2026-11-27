@@ -8,8 +8,6 @@ import Link from "next/link";
 import type { Graph, Workspace } from "@/lib/types";
 import { fetchGraph } from "@/lib/graphApi";
 
-const TOOLBAR_ICONS = ["grid", "play", "sliders", "search"] as const;
-
 export default function WorkspacePage() {
   return <Suspense fallback={<div className="app-shell">Loading workspace…</div>}><WorkspacePageContent /></Suspense>;
 }
@@ -38,12 +36,12 @@ function WorkspacePageContent() {
     <div className="app-shell">
       <header className="ws-topbar">
         <Link href="/" className="ws-back" aria-label="Back to canvas" title="Back to canvas">
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
             <path
-              d="M11 6 5 8l6 2"
+              d="m10 5-7 7 7 7M3 12h18"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.5"
+              strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -51,57 +49,12 @@ function WorkspacePageContent() {
         </Link>
         <div className="ws-title">{workspace?.name ?? workspaceId}</div>
         <div className="ws-toolbar">
-          {TOOLBAR_ICONS.map((icon) => (
-            <button
-              key={icon}
-              type="button"
-              className="ws-toolbar-button"
-              aria-label={icon}
-              title={icon}
-            >
-              <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
-                {icon === "grid" && (
-                  <>
-                    <path d="M4 4h2v2H4z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M10 4h2v2h-2z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M4 10h2v2H4z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M10 10h2v2h-2z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                  </>
-                )}
-                {icon === "play" && (
-                  <path
-                    d="M5 3l5 3.5-5 3.5z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-                {icon === "sliders" && (
-                  <>
-                    <path d="M3 4h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                    <path d="M3 8h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                    <path d="M3 12h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                  </>
-                )}
-                {icon === "search" && (
-                  <>
-                    <circle
-                      cx="7"
-                      cy="7"
-                      r="3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                    <path d="M10 10l3 3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                  </>
-                )}
-              </svg>
-            </button>
-          ))}
+          <Link href="/" className="ws-toolbar-button" aria-label="Return to canvas" title="Return to canvas">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+              <circle cx="7" cy="7" r="3" fill="none" stroke="currentColor" strokeWidth="1.4" />
+              <path d="M10 10l3 3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+          </Link>
         </div>
       </header>
 

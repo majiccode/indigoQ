@@ -117,7 +117,8 @@ def test_upload_to_untyped_workspace_sets_content_source(client: TestClient) -> 
     assert entry["name"] == "hello.txt"
     assert entry["mimeType"] == "text/plain"
     assert entry["size"] == 11
-    assert entry["dataUrl"].startswith("data:text/plain;base64,")
+    assert entry["dataUrl"].startswith("/api/files/")
+    assert client.get(entry["dataUrl"]).content == b"hello world"
 
 
 def test_upload_to_content_source_adds_files(client: TestClient) -> None:
@@ -171,6 +172,30 @@ def test_upload_rejects_unknown_workspace(client: TestClient) -> None:
         files=[("files", ("x.txt", b"x", "text/plain"))],
     )
     assert response.status_code == 404
+
+
+def test_large_pdf_upload_and_remove_preserves_other_files(client: TestClient) -> None:
+    client.put("/api/graph", json=GRAPH)
+    pdf = b"%PDF-1.7\n" + b"x" * 15_000_000
+    response = client.post(
+        "/api/workspaces/ingest/contents",
+        files=[
+            ("files", ("document.pdf", pdf, "application/pdf")),
+            ("files", ("keep.txt", b"keep", "text/plain")),
+        ],
+    )
+    assert response.status_code == 200
+    entry = response.json()["workspaces"][0]["contents"][0]
+    assert entry["mimeType"] == "application/pdf"
+    assert client.get(entry["dataUrl"]).content == pdf
+    assert len(response.content) < 5000
+    removed = client.delete(f"/api/workspaces/ingest/contents/{entry['id']}")
+    assert removed.status_code == 200
+    assert client.get(entry["dataUrl"]).status_code == 404
+    assert [item["name"] for item in removed.json()["workspaces"][0]["contents"]] == ["keep.txt"]
+    assert client.delete(f"/api/workspaces/ingest/contents/{entry['id']}").status_code == 404
+    assert client.delete("/api/workspaces/missing/contents/1").status_code == 404
+    assert len(client.get("/api/graph").json()["workspaces"][0]["contents"]) == 1
 
 
 def test_put_rejects_type_change(client: TestClient) -> None:
@@ -236,7 +261,7 @@ def test_editor_connected_open_and_save(client: TestClient) -> None:
     assert saved.status_code == 200
     file = saved.json()["workspaces"][0]["contents"][-1]
     assert file["name"] == "edited.txt"
-    assert base64.b64decode(file["dataUrl"].split(",")[1]) == b"gain = 0.8"
+    assert client.get(file["dataUrl"]).content == b"gain = 0.8"
     assert (
         client.post(
             "/api/workspaces/publish/editor/save",
@@ -362,7 +387,7 @@ def test_published_image_saves_to_connected_file_workspace(client: TestClient) -
     assert len(contents) == 1
     assert contents[0]["name"] == "edited.png"
     assert contents[0]["mimeType"] == "image/png"
-    assert base64.b64decode(contents[0]["dataUrl"].split(",", 1)[1]) == first
+    assert client.get(contents[0]["dataUrl"]).content == first
     file_id = contents[0]["id"]
 
     second = b"\x89PNG\r\n\x1a\nsecond"
@@ -379,7 +404,7 @@ def test_published_image_saves_to_connected_file_workspace(client: TestClient) -
     contents = next(w for w in saved.json()["workspaces"] if w["id"] == "files")["contents"]
     assert len(contents) == 1
     assert contents[0]["id"] == file_id
-    assert base64.b64decode(contents[0]["dataUrl"].split(",", 1)[1]) == second
+    assert client.get(contents[0]["dataUrl"]).content == second
 
 
 def test_file_save_requires_wire_and_content_source(client: TestClient) -> None:

@@ -6,8 +6,14 @@ import { fileURLToPath } from "node:url";
 process.chdir(fileURLToPath(new URL("../", import.meta.url)));
 const argv = process.argv.slice(2);
 const help = `Usage:
+  ./release.sh [patch|minor|major|<version>] [--no-wait] [--dry-run]
   node scripts/build-release.mjs --build-only
   node scripts/build-release.mjs <version> [--wait]
+
+./release.sh defaults to the next patch version and waits for GitHub Actions.
+Use minor or major for a larger bump, or supply an explicit version.
+--dry-run prints the release plan without changing files, tags, or GitHub.
+--no-wait returns after pushing the release tag.
 
 Build-only: install dependencies, check, and build the portable bundle for this machine.
 Release: require a clean main branch, run checks, update versions, commit,
@@ -30,8 +36,34 @@ if (argv.includes("--build-only")) {
   run(process.execPath, ["scripts/smoke-test.mjs"]);
   process.exit(0);
 }
-const version = argv[0].replace(/^v/, "");
-if (!/^\d+\.\d+\.\d+$/.test(version) || argv.slice(1).some(arg => arg !== "--wait")) throw new Error(help);
+const automatic = argv.includes("--auto");
+const options = new Set(["--auto", "--wait", "--no-wait", "--dry-run"]);
+const positional = argv.filter(arg => !arg.startsWith("--"));
+if (argv.some(arg => arg.startsWith("--") && !options.has(arg)) || positional.length > 1 ||
+    (argv.includes("--wait") && argv.includes("--no-wait"))) throw new Error(help);
+const current = JSON.parse(readFileSync("package.json", "utf8")).version;
+const target = positional[0] ?? (automatic ? "patch" : "");
+let version;
+if (["patch", "minor", "major"].includes(target)) {
+  const parts = current.split(".").map(Number);
+  if (!/^\d+\.\d+\.\d+$/.test(current)) throw new Error(`Cannot bump version ${current}`);
+  const index = { major: 0, minor: 1, patch: 2 }[target];
+  parts[index] += 1;
+  for (let i = index + 1; i < parts.length; i++) parts[i] = 0;
+  version = parts.join(".");
+} else {
+  version = target.replace(/^v/, "");
+}
+if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) throw new Error(help);
+const before = current.split(".").map(Number), after = version.split(".").map(Number);
+const difference = after.findIndex((part, index) => part !== before[index]);
+if (difference < 0 || after[difference] < before[difference]) throw new Error(`Release version must be newer than ${current}.`);
+const wait = !argv.includes("--no-wait") && (automatic || argv.includes("--wait"));
+console.log(`Release: ${current} → ${version} (v${version})`);
+if (argv.includes("--dry-run")) {
+  console.log(`Plan: check clean, up-to-date main and GitHub authentication; run checks; update versions; commit; tag v${version}; push main and tag; ${wait ? "wait for builds and print the release URL" : "print the Actions URL"}.`);
+  process.exit(0);
+}
 if (run("git", ["status", "--porcelain"], true)) throw new Error("Commit or stash local changes before releasing.");
 if (run("git", ["branch", "--show-current"], true) !== "main") throw new Error("Releases must be made from main.");
 run("gh", ["auth", "status"]);
@@ -69,7 +101,7 @@ if (changes) {
 run("git", ["tag", "-a", `v${version}`, "-m", `indigoQ v${version}`]);
 run("git", ["push", "--atomic", "origin", "main", `v${version}`]);
 console.log(`Release builds: https://github.com/${repo}/actions/workflows/release.yml`);
-if (argv.includes("--wait")) {
+if (wait) {
   let id;
   for (let attempt = 0; attempt < 30 && !id; attempt++) {
     const runs = JSON.parse(run("gh", ["run", "list", "--workflow", "release.yml", "--branch", `v${version}`, "--json", "databaseId", "--limit", "1"], true));

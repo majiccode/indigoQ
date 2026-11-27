@@ -11,7 +11,8 @@ function load(name) {
   return exports;
 }
 const { compileExpression, parseMath } = load("mathEngine");
-const { parseTable, tableCSV, workspaceTable } = load("workspaceData");
+const { parseTable, tableCSV, workspaceTable, workspaceText } = load("workspaceData");
+const { documentSource, isPdf, pdfPageText } = load("documentData");
 const { parseGraphFile, serializeGraph } = load("graphFile");
 const { registerWorkspaceFlush, flushWorkspaces } = load("workspaceFlush");
 const { parseControls, savedControls, selectPath, searchPassages } = load("studio");
@@ -23,6 +24,29 @@ const { chartPoints, chartBounds, selectedChartRows } = load("chart");
 const { speechResults, appendSpeech } = load("speech");
 const { transformInput } = load("transform");
 const { autoUpdateEnabled, incomingSnapshot } = load("autoUpdate");
+
+test("document previews select different shared files and publish text for comparison", () => {
+  const first = { id: "first", name: "original.pdf", mimeType: "application/octet-stream", dataUrl: "data:application/pdf;base64,one" };
+  const second = { id: "second", name: "revision.PDF", mimeType: "application/pdf", dataUrl: "data:application/pdf;base64,two" };
+  const source = { id: "files", type: "FileWorkspace", contents: [first, second] };
+  assert.equal(documentSource([source], "file|files|first", "").file, first);
+  assert.equal(documentSource([source], "file|files|second", "").file, second);
+  assert.equal(documentSource([source], "", "").file, first);
+  assert.equal(documentSource([source], "file|files|removed", "").missing, true);
+  assert.equal(documentSource([], "file|files|first", "").missing, true);
+  assert.equal(documentSource([source], "local", "Local document").text, "Local document");
+  assert.ok(isPdf(first));
+  assert.ok(isPdf(second));
+  assert.equal(isPdf({ name: "note.md", mimeType: "text/markdown" }), false);
+  const original = pdfPageText([{ type: "beginMarkedContent" }, { str: "Invoice", hasEOL: true }, { str: "Amount:" }, { str: "10", hasEOL: true }]);
+  const revision = pdfPageText([{ str: "Invoice", hasEOL: true }, { str: "Amount:" }, { str: "20", hasEOL: true }]);
+  assert.equal(original, "Invoice\nAmount: 10");
+  const previews = [original, revision].map((output, i) => ({ id: `preview-${i}`, contents: [], tool: { kind: "document-preview", output } }));
+  const left = documentSource(previews, "text|preview-0", "").text;
+  const right = documentSource(previews, "text|preview-1", "").text;
+  assert.equal(left, workspaceText(previews[0]));
+  assert.deepEqual(diffLines(left, right).filter((line) => line.kind !== "same"), [{ kind: "add", text: "Amount: 20" }, { kind: "remove", text: "Amount: 10" }]);
+});
 
 test("auto-update policy preserves explicit flags and legacy preview defaults", () => {
   assert.equal(autoUpdateEnabled({ type: "sql" }), false);

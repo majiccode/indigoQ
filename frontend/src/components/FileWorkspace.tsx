@@ -5,6 +5,7 @@ import { useState } from "react";
 import FileViewer from "./FileViewer";
 import FileDropArea from "./FileDropArea";
 import type { ContentEntry, Workspace } from "@/lib/types";
+import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 
 function mimeColor(mimeType: string): string {
   let hash = 0;
@@ -97,13 +98,18 @@ function formatSize(bytes: number): string {
 function FileCard({
   entry,
   onDoubleClick,
+  onRemove,
+  removing,
 }: {
   entry: ContentEntry;
   onDoubleClick: (entry: ContentEntry) => void;
+  onRemove: () => void;
+  removing: boolean;
 }) {
   const color = mimeColor(entry.mimeType);
 
   return (
+    <div className="fs-file-item">
     <button
       type="button"
       className="fs-file-card"
@@ -126,24 +132,48 @@ function FileCard({
       <div className="fs-file-size">{formatSize(entry.size)}</div>
       <div className="fs-file-kind">{entry.mimeType.split("/").pop()?.toUpperCase()}</div>
     </button>
+    <button type="button" className="fs-file-remove" aria-label={`Remove ${entry.name}`} title={`Remove ${entry.name}`} disabled={removing}
+      onDoubleClick={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onRemove(); }}>
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 4.5h10M6 4.5V2.5h4v2M4.5 4.5l.5 9h6l.5-9M6.5 7v4M9.5 7v4" /></svg>
+    </button>
+    </div>
   );
 }
 
 interface FileWorkspaceProps {
   workspace: Workspace;
   onFilesDrop: (files: File[]) => void;
+  onOperation: TypedWorkspaceProps["onOperation"];
 }
 
 export default function FileWorkspace({
   workspace,
   onFilesDrop,
+  onOperation,
 }: FileWorkspaceProps) {
   const [viewing, setViewing] = useState<ContentEntry | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const remove = async (entry: ContentEntry) => {
+    setRemoving(true); setError("");
+    try { await onOperation({ kind: "removeFile", fileId: entry.id }); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to remove file"); }
+    finally { setRemoving(false); }
+  };
 
   return (
     <FileDropArea onFilesDrop={onFilesDrop}>
+      {error && <div role="alert" className="tool-error">{error}</div>}
       {viewing ? <FileViewer entry={viewing} onClose={() => setViewing(null)} /> : (
       <div className="fs-workspace-body">
+        <div className="fs-files-toolbar">
+          <span>{workspace.contents.length} file{workspace.contents.length === 1 ? "" : "s"} · {formatSize(workspace.contents.reduce((total, file) => total + file.size, 0))}</span>
+          <div role="group" aria-label="File view">
+            <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")}>Grid</button>
+            <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")}>List</button>
+          </div>
+        </div>
         {workspace.contents.length === 0 ? (
           <div className="fs-empty">
             <div className="fs-empty-icon" aria-hidden>
@@ -162,12 +192,15 @@ export default function FileWorkspace({
             <span className="fs-empty-hint">Drag files onto this workspace to add them.</span>
           </div>
         ) : (
-          <div className="fs-grid">
+          <div className={view === "grid" ? "fs-grid" : "fs-list"} aria-label={`${view === "grid" ? "Grid" : "List"} of files`}>
+            {view === "list" && <div className="fs-list-head" aria-hidden><span>Name</span><span>Type</span><span>Size</span></div>}
             {workspace.contents.map((entry) => (
               <FileCard
                 key={entry.id}
                 entry={entry}
                 onDoubleClick={setViewing}
+                onRemove={() => void remove(entry)}
+                removing={removing}
               />
             ))}
           </div>

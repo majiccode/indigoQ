@@ -53,6 +53,32 @@ export async function fetchGraph(): Promise<GraphSnapshot> {
   return { ...graph, updatedAt };
 }
 
+export async function exportGraph(snapshot: Graph): Promise<Graph> {
+  const graph = structuredClone(snapshot);
+  const entries = graph.workspaces.flatMap((workspace) => [
+    ...workspace.contents,
+    ...(workspace.tool && "files" in workspace.tool ? workspace.tool.files ?? [] : []),
+  ]);
+  const embedded = new Map<string, Promise<string>>();
+  for (const entry of entries) {
+    if (entry.dataUrl.startsWith("data:")) continue;
+    const url = entry.dataUrl;
+    if (!embedded.has(url)) embedded.set(url, (async () => {
+      const response = await fetch(`${API_BASE}${url}`);
+      if (!response.ok) throw new Error(`Unable to export ${entry.name} (${response.status})`);
+      const blob = new Blob([await response.arrayBuffer()], { type: entry.mimeType });
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error(`Unable to export ${entry.name}`));
+        reader.readAsDataURL(blob);
+      });
+    })());
+    entry.dataUrl = await embedded.get(url)!;
+  }
+  return graph;
+}
+
 export async function saveGraph(graph: Graph): Promise<GraphSnapshot> {
   const response = await request("/api/graph", {
     method: "PUT",
@@ -130,6 +156,7 @@ export type WorkspaceOperation =
   | { kind: "draft"; document: EditorDocument }
   | { kind: "tool"; state: ToolState }
   | { kind: "open"; workspaceId: string; fileId: string }
+  | { kind: "removeFile"; fileId: string }
   | { kind: "save"; workspaceId: string; fileId?: string; name: string; text: string }
   | { kind: "saveFile"; workspaceId: string; name: string; mimeType: string; dataUrl: string };
 
@@ -143,6 +170,7 @@ export async function workspaceOperation(id: string, operation: WorkspaceOperati
     case "draft": path = "editor"; method = "PUT"; body = operation.document; break;
     case "tool": path = "tool"; method = "PUT"; body = operation.state; break;
     case "open": path = "editor/open"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId }; break;
+    case "removeFile": path = `contents/${encodeURIComponent(operation.fileId)}`; method = "DELETE"; break;
     case "save": path = "editor/save"; body = { workspaceId: operation.workspaceId, fileId: operation.fileId, name: operation.name, text: operation.text }; break;
     case "saveFile": path = "file/save"; body = { workspaceId: operation.workspaceId, name: operation.name, mimeType: operation.mimeType, dataUrl: operation.dataUrl }; break;
   }

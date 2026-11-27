@@ -1,20 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 import type { ContentEntry } from "@/lib/types";
-
-function dataUrlToBytes(dataUrl: string): Uint8Array {
-  const comma = dataUrl.indexOf(",");
-  if (comma === -1) return new Uint8Array(0);
-  const base64 = dataUrl.slice(comma + 1);
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes;
-}
 
 function bytesToHex(bytes: Uint8Array): string {
   let hex = "";
@@ -48,6 +37,19 @@ export default function FileViewer({
 
   const isImage = entry.mimeType.startsWith("image/");
   const isAudio = entry.mimeType.startsWith("audio/");
+  const [bytes, setBytes] = useState(new Uint8Array());
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (isImage || isAudio) return;
+    const controller = new AbortController();
+    void fetch(entry.dataUrl, { signal: controller.signal, headers: { Range: "bytes=0-65535" } })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to load file");
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (!controller.signal.aborted) setBytes(bytes.subarray(0, 65536));
+      }).catch((reason) => { if (!controller.signal.aborted) setError(reason.message); });
+    return () => controller.abort();
+  }, [entry.dataUrl, isImage, isAudio]);
 
   return (
     <div className="file-viewer" role="region" aria-label={`Viewing ${entry.name}`}>
@@ -116,10 +118,12 @@ export default function FileViewer({
           )}
           {!isImage && !isAudio && (
             <div className="file-viewer-hex">
+              {error && <p role="alert">{error}</p>}
               <div className="file-viewer-hex-label">Hex</div>
-              <pre className="file-viewer-hex-data">{bytesToHex(dataUrlToBytes(entry.dataUrl))}</pre>
+              <pre className="file-viewer-hex-data">{bytesToHex(bytes)}</pre>
               <div className="file-viewer-hex-label">ASCII</div>
-              <pre className="file-viewer-hex-data">{bytesToAscii(dataUrlToBytes(entry.dataUrl))}</pre>
+              <pre className="file-viewer-hex-data">{bytesToAscii(bytes)}</pre>
+              {entry.size > 65536 && <p>Showing the first 64 KB. Download to view the complete file.</p>}
             </div>
           )}
         </div>

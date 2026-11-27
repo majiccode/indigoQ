@@ -14,15 +14,12 @@ import {
   portPoint,
   previewRoute,
   type Route,
-  type ResizeCorner,
 } from "./geometry";
 import type { HoverState, InteractionMode } from "./interaction";
 import type { Point, Port, Viewport, Wire, Workspace } from "./types";
 
 const FONT_SANS =
   'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const TOOLBAR_ICONS = ["grid", "play", "sliders", "search"] as const;
-type ToolbarIcon = (typeof TOOLBAR_ICONS)[number];
 
 const COLORS = {
   wireStart: "rgba(129, 140, 248, 0.62)",
@@ -80,6 +77,10 @@ export function drawScene(frame: SceneFrame): void {
 
   if (frame.mode.kind === "create") {
     paintDraft(ctx, frame.mode.start, frame.mode.current, scale);
+  }
+
+  if (frame.mode.kind === "zoom-rect") {
+    paintDraft(ctx, frame.mode.start, frame.mode.current, scale, "Zoom to area");
   }
 
   if (frame.mode.kind === "wire") {
@@ -341,30 +342,7 @@ function paintWorkspace(
 
   paintWorkspaceChrome(ctx, workspace, frame);
   paintWorkspaceBody(ctx, workspace, scale);
-  paintResizeHandles(ctx, workspace, frame);
   ctx.restore();
-}
-
-function paintResizeHandles(ctx: CanvasRenderingContext2D, workspace: Workspace, frame: SceneFrame): void {
-  const { scale } = frame.viewport;
-  const size = 8 / scale;
-  const corners: [ResizeCorner, number, number][] = [
-    ["top-left", workspace.x, workspace.y],
-    ["top-right", workspace.x + workspace.width, workspace.y],
-    ["bottom-left", workspace.x, workspace.y + workspace.height],
-    ["bottom-right", workspace.x + workspace.width, workspace.y + workspace.height],
-  ];
-  for (const [corner, x, y] of corners) {
-    const active = (frame.hover.resize?.workspaceId === workspace.id && frame.hover.resize.corner === corner)
-      || (frame.mode.kind === "resize" && frame.mode.id === workspace.id && frame.mode.corner === corner);
-    ctx.fillStyle = active ? "#eef0ff" : "#17172f";
-    ctx.strokeStyle = active ? "#c4b5fd" : frame.selectedId === workspace.id ? "#c7d2fe" : "#818cf8";
-    ctx.lineWidth = (active ? 2 : 1.5) / scale;
-    ctx.beginPath();
-    ctx.rect(x - size / 2, y - size / 2, size, size);
-    ctx.fill();
-    ctx.stroke();
-  }
 }
 
 function paintWorkspaceChrome(
@@ -395,10 +373,7 @@ function paintWorkspaceChrome(
 
   const toolbarVisible = scale > 0.5 && workspace.width > 240;
   const iconSize = 13;
-  const iconGap = 13;
-  const toolbarWidth = toolbarVisible
-    ? TOOLBAR_ICONS.length * iconSize + (TOOLBAR_ICONS.length - 1) * iconGap
-    : 0;
+  const toolbarWidth = toolbarVisible ? iconSize : 0;
   const reservedRight = toolbarVisible ? toolbarWidth + 34 : 20;
   const maxNameWidth = Math.max(24, workspace.width - 46 - reservedRight);
 
@@ -438,17 +413,7 @@ function paintWorkspaceChrome(
     ctx.lineWidth = screenWidth(1, scale);
     ctx.stroke();
 
-    TOOLBAR_ICONS.forEach((icon, index) => {
-      drawToolIcon(
-        ctx,
-        icon,
-        startCenter + index * (iconSize + iconGap),
-        centerY,
-        iconSize,
-        "rgba(206, 214, 255, 0.62)",
-        scale,
-      );
-    });
+    drawMagnifyIcon(ctx, startCenter, centerY, iconSize, "rgba(206, 214, 255, 0.62)", scale);
   }
 
   ctx.restore();
@@ -516,9 +481,8 @@ function fitText(
   return low > 0 ? `${text.slice(0, low).trimEnd()}…` : "…";
 }
 
-function drawToolIcon(
+function drawMagnifyIcon(
   ctx: CanvasRenderingContext2D,
-  icon: ToolbarIcon,
   centerX: number,
   centerY: number,
   size: number,
@@ -533,47 +497,13 @@ function drawToolIcon(
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  if (icon === "grid") {
-    const cell = size * 0.32;
-    const gap = size * 0.14;
-    for (let row = 0; row < 2; row += 1) {
-      for (let column = 0; column < 2; column += 1) {
-        ctx.strokeRect(
-          -half + column * (cell + gap) + size * 0.09,
-          -half + row * (cell + gap) + size * 0.09,
-          cell,
-          cell,
-        );
-      }
-    }
-  } else if (icon === "play") {
-    ctx.beginPath();
-    ctx.moveTo(-half * 0.5, -half * 0.62);
-    ctx.lineTo(half * 0.62, 0);
-    ctx.lineTo(-half * 0.5, half * 0.62);
-    ctx.closePath();
-    ctx.stroke();
-  } else if (icon === "sliders") {
-    for (let row = 0; row < 3; row += 1) {
-      const y = -half * 0.62 + row * (half * 0.62);
-      const knobX = row === 0 ? -half * 0.2 : row === 1 ? half * 0.2 : -half * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(-half * 0.75, y);
-      ctx.lineTo(half * 0.75, y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(knobX, y, size * 0.1, 0, TAU);
-      ctx.stroke();
-    }
-  } else {
-    ctx.beginPath();
-    ctx.arc(-half * 0.12, -half * 0.12, half * 0.44, 0, TAU);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(half * 0.24, half * 0.24);
-    ctx.lineTo(half * 0.68, half * 0.68);
-    ctx.stroke();
-  }
+  ctx.beginPath();
+  ctx.arc(-half * 0.12, -half * 0.12, half * 0.44, 0, TAU);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(half * 0.24, half * 0.24);
+  ctx.lineTo(half * 0.68, half * 0.68);
+  ctx.stroke();
 
   ctx.restore();
 }
@@ -641,6 +571,7 @@ function paintDraft(
   start: Point,
   current: Point,
   scale: number,
+  caption?: string,
 ): void {
   const rect = normalizeRect(start, current);
   if (rect.width < 1 || rect.height < 1) return;
@@ -658,7 +589,7 @@ function paintDraft(
   ctx.setLineDash([]);
   ctx.shadowBlur = 0;
 
-  const label = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
+  const label = caption ?? `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
   ctx.font = `500 ${screenWidth(11, scale)}px ${FONT_SANS}`;
   const labelWidth = ctx.measureText(label).width;
   const padding = screenWidth(6, scale);

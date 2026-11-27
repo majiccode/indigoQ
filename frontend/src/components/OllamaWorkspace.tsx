@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import type { OllamaState } from "@/lib/types";
-import { fileText, downloadText, workspaceFiles, workspaceText } from "@/lib/workspaceData";
+import { fileText, fileBase64, downloadText, workspaceFiles, workspaceText } from "@/lib/workspaceData";
 import { fetchModels, generateText } from "@/lib/ollamaApi";
 import { useToolState } from "./useToolState";
 import { useSpeechInput } from "./useSpeechInput";
@@ -65,7 +65,7 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
       for (const source of sources.filter((item) => state.sourceIds.includes(item.id))) {
         const text = workspaceText(source); if (text) sections.push(`--- ${source.name} ---\n${text}`);
         for (const file of workspaceFiles(source)) {
-          if (file.mimeType.startsWith("image/")) { images.push(file.dataUrl.split(",")[1]); sections.push(`--- Image: ${source.name} / ${file.name} ---`); }
+          if (file.mimeType.startsWith("image/")) { images.push(await fileBase64(file)); sections.push(`--- Image: ${source.name} / ${file.name} ---`); }
           else sections.push(`--- ${source.name} / ${file.name} ---\n${await fileText(file)}`);
         }
       }

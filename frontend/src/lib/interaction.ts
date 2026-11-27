@@ -11,6 +11,7 @@ export type InteractionMode =
   | { kind: "idle" }
   | { kind: "pan"; startScreen: Point; startViewport: Viewport }
   | { kind: "create"; start: Point; current: Point }
+  | { kind: "zoom-rect"; start: Point; current: Point }
   | {
       kind: "move";
       id: string;

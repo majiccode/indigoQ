@@ -87,10 +87,23 @@ export function workspaceFiles(workspace: Workspace): ContentEntry[] {
 
 export async function fileText(file: ContentEntry) {
   const response = await fetch(file.dataUrl);
+  if (!response.ok) throw new Error(`Unable to read ${file.name} (${response.status})`);
   const bytes = await response.arrayBuffer();
   const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   if (text.includes("\0")) throw new Error("Choose a UTF-8 text file");
   return text;
+}
+
+export async function fileBase64(file: ContentEntry): Promise<string> {
+  const response = await fetch(file.dataUrl);
+  if (!response.ok) throw new Error(`Unable to read ${file.name} (${response.status})`);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = () => reject(new Error(`Unable to read ${file.name}`));
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function downloadText(name: string, text: string, type = "text/plain") {

@@ -15,7 +15,7 @@ def test_examples_import_roundtrip_and_replacement(tmp_path: Path) -> None:
         graph = json.loads(path.read_text())["graph"]
         response = client.post("/api/graph/import", json=graph)
         assert response.status_code == 200, response.text
-        loaded = client.get("/api/graph").json()
+        loaded = client.get("/api/graph/export").json()
         normalized = Graph.model_validate(graph).model_dump(mode="json")
         assert loaded["workspaces"] == normalized["workspaces"]
         assert loaded["wires"] == graph["wires"]

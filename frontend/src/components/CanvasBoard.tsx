@@ -154,6 +154,7 @@ export default function CanvasBoard({
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const clearDialog = useRef<HTMLDialogElement>(null);
   const graphRef = useRef<Graph>(graph);
   const viewportRef = useRef<Viewport>({ x: 0, y: 0, scale: 1 });
   const sizeRef = useRef<Size>({ width: 0, height: 0, dpr: 1 });
@@ -582,15 +583,23 @@ export default function CanvasBoard({
         deltaX *= sizeRef.current.width;
         deltaY *= sizeRef.current.height;
       }
-      if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
-        deltaX = deltaY;
-        deltaY = 0;
-      }
 
       const viewport =
         focusWorkspaceIdProp && fullscreenViewportRef.current
           ? fullscreenViewportRef.current
           : viewportRef.current;
+      const overEmptyCanvas = event.target === canvas &&
+        !workspaceAt(graphRef.current.workspaces, screenToWorld(viewport, screen));
+      if (overEmptyCanvas) {
+        zoomBy(Math.exp(-deltaY * 0.0018), screen);
+        return;
+      }
+
+      if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
+        deltaX = deltaY;
+        deltaY = 0;
+      }
+
       const nextViewport = {
         ...viewport,
         x: viewport.x - deltaX,
@@ -835,7 +844,7 @@ export default function CanvasBoard({
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (event.button !== 0 && event.button !== 1) return;
+      if (event.button !== 0 && event.button !== 1 && event.button !== 2) return;
 
       if (renamingRef.current) commitRename();
 
@@ -846,6 +855,15 @@ export default function CanvasBoard({
           ? fullscreenViewportRef.current
           : viewportRef.current;
       const world = screenToWorld(viewport, screen);
+
+      if (event.button === 0 && event.metaKey) {
+        event.preventDefault();
+        canvas.setPointerCapture(event.pointerId);
+        hoverRef.current = EMPTY_HOVER;
+        modeRef.current = { kind: "zoom-rect", start: world, current: world };
+        canvas.style.cursor = "crosshair";
+        return;
+      }
 
       if (event.button === 1 || spaceRef.current) {
         event.preventDefault();
@@ -860,6 +878,16 @@ export default function CanvasBoard({
       }
 
       const workspace = workspaceAt(graphRef.current.workspaces, world);
+      if (event.button === 2) {
+        event.preventDefault();
+        if (workspace) return;
+        selectWorkspace(null);
+        canvas.setPointerCapture(event.pointerId);
+        modeRef.current = { kind: "create", start: world, current: world };
+        canvas.style.cursor = "crosshair";
+        return;
+      }
+
       if (workspace && pointInWorkspaceMagnify(workspace, world, viewport.scale)) {
         event.preventDefault();
         selectWorkspace(workspace.id);
@@ -926,9 +954,14 @@ export default function CanvasBoard({
       }
 
       selectWorkspace(null);
+      event.preventDefault();
       canvas.setPointerCapture(event.pointerId);
-      modeRef.current = { kind: "create", start: world, current: world };
-      canvas.style.cursor = "crosshair";
+      modeRef.current = {
+        kind: "pan",
+        startScreen: screen,
+        startViewport: { ...viewport },
+      };
+      canvas.style.cursor = "grabbing";
     },
     [commitRename, selectWorkspace, focusWorkspaceIdProp, router],
   );
@@ -957,7 +990,7 @@ export default function CanvasBoard({
         return;
       }
 
-      if (mode.kind === "create") {
+      if (mode.kind === "create" || mode.kind === "zoom-rect") {
         mode.current = world;
         canvas.style.cursor = "crosshair";
         return;
@@ -1075,9 +1108,28 @@ export default function CanvasBoard({
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       const canvas = event.currentTarget;
       const mode = modeRef.current;
-      const viewport = viewportRef.current;
+      const viewport = focusWorkspaceIdProp && fullscreenViewportRef.current
+        ? fullscreenViewportRef.current : viewportRef.current;
 
-      if (mode.kind === "create") {
+      if (mode.kind === "zoom-rect") {
+        const rect = normalizeRect(mode.start, screenToWorld(viewport, screenPointFromEvent(event)));
+        const { width, height } = sizeRef.current;
+        if (rect.width * viewport.scale >= 8 && rect.height * viewport.scale >= 8 && width > 0 && height > 0) {
+          const scale = clamp(Math.min(width / rect.width, height / rect.height), MIN_SCALE, MAX_SCALE);
+          const nextViewport = {
+            scale,
+            x: width / 2 - (rect.x + rect.width / 2) * scale,
+            y: height / 2 - (rect.y + rect.height / 2) * scale,
+          };
+          if (focusWorkspaceIdProp && fullscreenViewportRef.current) {
+            fullscreenViewportRef.current = nextViewport;
+          } else {
+            viewportRef.current = nextViewport;
+            queueViewportSave();
+          }
+          setZoomPct(Math.round(scale * 100));
+        }
+      } else if (mode.kind === "create") {
         const rect = normalizeRect(mode.start, mode.current);
         if (
           rect.width * viewport.scale >= CREATE_MIN_PX &&
@@ -1156,7 +1208,7 @@ export default function CanvasBoard({
       canvas.style.cursor = spaceRef.current ? "grab" : "default";
       handlePointerMove(event);
     },
-    [commitGraph, selectWorkspace, handlePointerMove],
+    [commitGraph, selectWorkspace, handlePointerMove, focusWorkspaceIdProp, queueViewportSave],
   );
 
   const handlePointerCancel = useCallback(
@@ -1194,8 +1246,8 @@ export default function CanvasBoard({
   }, []);
 
   const handleClear = useCallback(() => {
+    clearDialog.current?.close();
     if (graphRef.current.workspaces.length === 0) return;
-    if (!window.confirm("Clear all workspaces and wires from this canvas?")) return;
 
     const empty: Graph = { workspaces: [], wires: [] };
     graphRef.current = empty;
@@ -1229,12 +1281,12 @@ export default function CanvasBoard({
         : "Syncing the canvas with the indigoQ API.";
 
   return (
-    <div className="stage" ref={stageRef}>
+    <div className="stage" ref={stageRef} onContextMenu={(event) => event.preventDefault()}>
       <canvas
         ref={canvasRef}
         className="canvas-surface"
         role="application"
-        aria-label="indigoQ infinite workspace canvas. Drag on empty space to draw a workspace, drag from a border to connect workspaces."
+        aria-label="indigoQ infinite workspace canvas. Left-drag empty space to pan, right-drag empty space to draw a workspace, drag from a border to connect workspaces."
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1280,10 +1332,10 @@ export default function CanvasBoard({
             onPointerDown={(event) => {
               selectWorkspace(workspace.id);
               // Preserve canvas panning over child components.
-              if (spaceRef.current || event.button === 1) {
+              if (spaceRef.current || event.button === 1 || (event.button === 0 && event.metaKey)) {
                 canvasRef.current?.dispatchEvent(new PointerEvent("pointerdown", {
                   bubbles: true, clientX: event.clientX, clientY: event.clientY,
-                  button: event.button, pointerId: event.pointerId,
+                  button: event.button, pointerId: event.pointerId, metaKey: event.metaKey,
                 }));
                 event.preventDefault();
               }
@@ -1413,27 +1465,6 @@ export default function CanvasBoard({
         </div>
       )}
 
-      <div className="canvas-hints" aria-hidden>
-        <span>
-          <kbd>Drag</kbd> create
-        </span>
-        <span>
-          <kbd>Space</kbd> + drag pan
-        </span>
-        <span>
-          <kbd>⌘/Ctrl</kbd> + scroll zoom
-        </span>
-        <span>
-          <kbd>Drag corner</kbd> resize
-        </span>
-        <span>
-          <kbd>Double-click body</kbd> open workspace
-        </span>
-        <span>
-          <kbd>Double-click header</kbd> rename
-        </span>
-      </div>
-
       <div className="canvas-hud">
         <div className="hud-panel">
           <button
@@ -1482,7 +1513,7 @@ export default function CanvasBoard({
           <button
             type="button"
             className="hud-button hud-clear"
-            onClick={handleClear}
+            onClick={() => clearDialog.current?.showModal()}
             disabled={graph.workspaces.length === 0}
             aria-label="Clear canvas"
             title="Clear canvas"
@@ -1501,8 +1532,29 @@ export default function CanvasBoard({
         </div>
       </div>
 
+      <dialog
+        ref={clearDialog}
+        className="about-dialog clear-dialog"
+        aria-labelledby="clear-dialog-title"
+        aria-describedby="clear-dialog-description"
+        onKeyDown={(event) => event.stopPropagation()}
+        onClick={(event) => { if (event.target === event.currentTarget) clearDialog.current?.close(); }}
+      >
+        <form method="dialog" onSubmit={(event) => {
+          event.preventDefault();
+          handleClear();
+        }}>
+          <h2 id="clear-dialog-title">Clear canvas?</h2>
+          <p id="clear-dialog-description">Remove all workspaces and wires from this canvas?</p>
+          <div className="clear-dialog-actions">
+            <button type="button" autoFocus onClick={() => clearDialog.current?.close()}>Cancel</button>
+            <button type="submit" className="clear-dialog-confirm">OK</button>
+          </div>
+        </form>
+      </dialog>
+
       <p className="sr-only">
-        Use the canvas to create isolated workspaces. Drag from a workspace border to create a
+        Left-drag empty canvas to pan, or right-drag to create isolated workspaces. Drag from a workspace border to create a
         dataflow wire. Drag the workspace header to move it, or a corner to resize it.
         Double-click the body to open a workspace. Double-click the header to rename it. Drag a
         corner to resize. Press Delete to remove the selected workspace, and press Escape to cancel.
