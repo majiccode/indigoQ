@@ -19,6 +19,7 @@ import KnowledgeWorkspace from "./KnowledgeWorkspace";
 import DashboardWorkspace from "./DashboardWorkspace";
 import ChartWorkspace from "./ChartWorkspace";
 import TextToSpeechWorkspace from "./TextToSpeechWorkspace";
+import ReadAloudWorkspace from "./ReadAloudWorkspace";
 import { STUDIO_NAMES } from "@/lib/studio";
 import { registerWorkspaceType } from "@/lib/workspaceRegistry";
 
@@ -52,7 +53,8 @@ registerWorkspaceType({ type: "model-bench", name: STUDIO_NAMES["model-bench"], 
 registerWorkspaceType({ type: "knowledge", name: STUDIO_NAMES.knowledge, description: "Retrieve relevant document passages with source references.", inputs: ["files", "text"], outputs: ["text"], component: KnowledgeWorkspace });
 registerWorkspaceType({ type: "dashboard", name: STUDIO_NAMES.dashboard, description: "Compose connected charts, tables, documents, and media.", inputs: ["text", "table", "files", "controls"], outputs: [], component: DashboardWorkspace });
 registerWorkspaceType({ type: "chart-studio", name: STUDIO_NAMES["chart-studio"], description: "Explore tables with charts, brush rows, and export images.", inputs: ["table"], outputs: ["table", "text", "files"], component: ChartWorkspace });
-registerWorkspaceType({ type: "speech-to-text", name: STUDIO_NAMES["speech-to-text"], description: "Live microphone spectrum and speech transcription to connected text workspaces.", inputs: [], outputs: ["text"], component: TextToSpeechWorkspace });
+registerWorkspaceType({ type: "speech-to-text", name: STUDIO_NAMES["speech-to-text"], description: "Live microphone spectrum and speech transcription to connected text workspaces. Reads connected text aloud.", inputs: ["text"], outputs: ["text"], component: TextToSpeechWorkspace });
+registerWorkspaceType({ type: "text-to-speech", name: "Text to Speech", description: "Reads connected text aloud using your browser's speech synthesis.", inputs: ["text"], outputs: [], component: ReadAloudWorkspace });
 
 registerWorkspaceType({
   type: "data-table", name: "Data Table", description: "Explore, edit, and transform CSV and JSON data.",

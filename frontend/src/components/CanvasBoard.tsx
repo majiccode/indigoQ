@@ -40,7 +40,7 @@ import { flushWorkspaces } from "@/lib/workspaceFlush";
 import { createSampleGraph } from "@/lib/graph";
 import WorkspaceContent from "@/components/Workspace";
 import GraphWorkspace from "@/components/GraphWorkspace";
-import { getWorkspaceTypes } from "@/lib/workspaceRegistry";
+import { getWorkspaceType, getWorkspaceTypes } from "@/lib/workspaceRegistry";
 import type { HoverState, InteractionMode, WireTarget } from "@/lib/interaction";
 import {
   readCleared,
@@ -102,16 +102,27 @@ function screenPointFromEvent(event: {
 }
 
 function findWireTarget(
+  graph: Graph,
   workspaces: Workspace[],
   sourceId: string,
   point: Point,
   tolerance: number,
 ): WireTarget | null {
+  const source = graph.workspaces.find((w) => w.id === sourceId);
+  if (!source || !source.type) return null;
+  const sourceDef = getWorkspaceType(source.type);
+  if (!sourceDef || sourceDef.outputs.length === 0) return null;
+
   let best: WireTarget | null = null;
   let bestDistance = tolerance;
 
   for (const workspace of workspaces) {
     if (workspace.id === sourceId) continue;
+    if (!workspace.type) continue;
+    const targetDef = getWorkspaceType(workspace.type);
+    if (!targetDef || targetDef.inputs.length === 0) continue;
+    if (!sourceDef.outputs.some((cap) => targetDef.inputs.includes(cap))) continue;
+
     const hit = closestBorderPoint(workspace, point);
     if (hit.distance < bestDistance) {
       bestDistance = hit.distance;
@@ -1041,6 +1052,7 @@ export default function CanvasBoard({
       if (mode.kind === "wire") {
         mode.current = world;
         mode.target = findWireTarget(
+          graphRef.current,
           graphRef.current.workspaces,
           mode.sourceId,
           world,
@@ -1198,11 +1210,17 @@ export default function CanvasBoard({
       } else if (mode.kind === "wire") {
         const target = mode.target;
         if (target) {
+          const source = graphRef.current.workspaces.find((w) => w.id === mode.sourceId);
+          const targetWorkspace = graphRef.current.workspaces.find((w) => w.id === target.workspaceId);
+          const sourceDef = source && source.type ? getWorkspaceType(source.type) : undefined;
+          const targetDef = targetWorkspace && targetWorkspace.type ? getWorkspaceType(targetWorkspace.type) : undefined;
+          const compatible = !!sourceDef && !!targetDef &&
+            sourceDef.outputs.some((cap) => targetDef.inputs.includes(cap));
           const duplicate = graphRef.current.wires.some(
             (wire) =>
               wire.source === mode.sourceId && wire.target === target.workspaceId,
           );
-          if (!duplicate) {
+          if (compatible && !duplicate) {
             const wire: Wire = {
               id: createId("wire"),
               source: mode.sourceId,

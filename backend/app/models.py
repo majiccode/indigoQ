@@ -24,6 +24,7 @@ StudioKind = Literal[
     "dashboard",
     "chart-studio",
     "speech-to-text",
+    "text-to-speech",
 ]
 
 
