@@ -86,6 +86,7 @@ mkdirSync(path.join(output, "images"), { recursive: true });
 cpSync(path.join(root, "docs/screenshots"), path.join(output, "images"), { recursive: true });
 cpSync(path.join(root, "frontend/src/app/icon.svg"), path.join(output, "icon.svg"));
 cpSync(path.join(root, "site/style.css"), path.join(output, "style.css"));
+cpSync(path.join(root, "site/google8ee8483728291f13.html"), path.join(output, "google8ee8483728291f13.html"));
 const body = `<section class="hero wrap"><div class="eyebrow">VISUAL WORKFLOWS · LOCAL-FIRST · OPEN SOURCE</div>
 <h1>Your ideas.<br>Your data.<br><span>Connected.</span></h1>
 <p class="lead">indigoQ is a local-first visual workbench for files, data, and AI. Connect workspaces on an infinite canvas to explore documents, build charts, and experiment with local models.</p>
