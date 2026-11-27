@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync, cpSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -36,8 +36,18 @@ const version = JSON.parse(readFileSync(path.join(root, "package.json"))).versio
 const name = `indigoQ-${version}-${process.platform}-${process.arch}-server`;
 const bundle = path.join(root, "dist/portable", name);
 mkdirSync(bundle, { recursive: true });
-cpSync(path.join(root, "dist/server/indigoq-server"), bundle, { recursive: true });
+cpSync(path.join(root, "dist/server/indigoq-server"), bundle, { recursive: true, dereference: true });
 cpSync(path.join(root, "docs/INSTALL.md"), path.join(bundle, "INSTALL.md"));
+function symlinks(directory, found = []) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) found.push(file);
+    else if (entry.isDirectory()) symlinks(file, found);
+  }
+  return found;
+}
+const links = symlinks(bundle);
+if (links.length) throw new Error(`Portable bundle contains symlinks: ${links.join(", ")}`);
 if (process.platform === "win32") {
   writeFileSync(path.join(bundle, "Start indigoQ.cmd"), '@echo off\r\ncd /d "%~dp0"\r\nindigoq-server.exe\r\npause\r\n');
   run("tar", ["-a", "-cf", path.join(root, "dist", `${name}.zip`), "-C", path.dirname(bundle), name]);

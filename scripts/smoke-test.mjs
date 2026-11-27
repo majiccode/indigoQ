@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,11 @@ import readline from "node:readline";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const temp = mkdtempSync(path.join(tmpdir(), "indigoq-smoke-"));
-const executable = path.join(root, "dist/server/indigoq-server", process.platform === "win32" ? "indigoq-server.exe" : "indigoq-server");
+const version = JSON.parse(readFileSync(path.join(root, "package.json"))).version;
+const exeName = process.platform === "win32" ? "indigoq-server.exe" : "indigoq-server";
+const bundleExe = path.join(root, `dist/portable/indigoQ-${version}-${process.platform}-${process.arch}-server`, exeName);
+const executable = existsSync(bundleExe) ? bundleExe : path.join(root, "dist/server/indigoq-server", exeName);
+console.log(`Testing ${path.relative(root, executable)}`);
 let child;
 async function start() {
   child = spawn(executable, ["--port", "0", "--no-browser"], { env: { ...process.env, INDIGOQ_DATA_FILE: path.join(temp, "graph.json") }, stdio: ["ignore", "pipe", "inherit"] });
