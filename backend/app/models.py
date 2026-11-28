@@ -15,6 +15,9 @@ StudioKind = Literal[
     "http-client",
     "transform",
     "document-preview",
+    "ascii-art",
+    "ambient-mood",
+    "usb-debug",
     "diff",
     "image-studio",
     "sql",
@@ -26,6 +29,9 @@ StudioKind = Literal[
     "speech-to-text",
     "text-to-speech",
     "system-monitor",
+    "electronic-workspace",
+    "model-workspace",
+    "world-workspace",
 ]
 
 

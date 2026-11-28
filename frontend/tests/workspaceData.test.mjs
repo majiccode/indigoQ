@@ -15,7 +15,10 @@ const { parseTable, tableCSV, workspaceTable, workspaceText } = load("workspaceD
 const { documentSource, isPdf, pdfPageText } = load("documentData");
 const { parseGraphFile, serializeGraph } = load("graphFile");
 const { registerWorkspaceFlush, flushWorkspaces } = load("workspaceFlush");
-const { parseControls, savedControls, selectPath, searchPassages } = load("studio");
+const { parseControls, savedControls, selectPath, searchPassages, studioDefault } = load("studio");
+const { parseCircuit, circuitNets, checkCircuit, pinPosition } = load("circuit");
+const { parseMeshes, parseWorld, projectVertex, transformVertex, drawScene, IDENTITY } = load("scene3d");
+const { parseHexBytes, transferBytes } = load("usb");
 const { simulate } = load("simulation");
 const { diffLines } = load("textDiff");
 const { workspaceResizeAt, resizeCursor } = load("geometry");
@@ -46,6 +49,73 @@ test("document previews select different shared files and publish text for compa
   const right = documentSource(previews, "text|preview-1", "").text;
   assert.equal(left, workspaceText(previews[0]));
   assert.deepEqual(diffLines(left, right).filter((line) => line.kind !== "same"), [{ kind: "add", text: "Amount: 20" }, { kind: "remove", text: "Amount: 10" }]);
+});
+
+test("legacy circuit defaults normalize pins, wire indices, and power components", () => {
+  const defaults = JSON.parse(studioDefault("electronic-workspace").text);
+  defaults.components[0].type = "vsource";
+  const circuit = parseCircuit(JSON.stringify(defaults));
+  assert.equal(circuit.components[0].type, "power");
+  assert.equal(circuit.components[0].pins.length, 2);
+  assert.equal(circuit.wires[0].from.pin, "p0");
+  assert.deepEqual(checkCircuit(circuit), []);
+  assert.equal(circuitNets(circuit).length, 3);
+  const part = circuit.components[0];
+  assert.notDeepEqual(pinPosition(part, 0), pinPosition({ ...part, rotation: 90 }, 0));
+  assert.throws(() => parseCircuit(JSON.stringify({ ...defaults, components: [{ ...defaults.components[0], type: "unknown" }] })), /Unsupported/);
+  assert.throws(() => parseCircuit(JSON.stringify({ ...defaults, wires: [{ id: "bad", from: { comp: "missing", pin: 0 }, to: { comp: "c1", pin: 0 } }] })), /missing component/);
+  const short = { ...circuit, wires: [...circuit.wires, { id: "short", from: { comp: "c1", pin: "p0" }, to: { comp: "c1", pin: "p1" } }] };
+  assert.match(checkCircuit(short)[0], /shorted/);
+});
+
+test("models accept legacy defaults and scenes retain geometry on export roundtrip", () => {
+  const model = parseMeshes(studioDefault("model-workspace").text);
+  assert.equal(model.meshes.length, 1);
+  assert.ok(model.meshes[0].vertices.every((p) => Number.isFinite(p.x)));
+  assert.deepEqual(parseMeshes(JSON.stringify(model)), model);
+  assert.throws(() => parseMeshes('{"meshes":[{"vertices":[[0,0,0]],"faces":[[0,1,2]]}]}'), /indices/);
+  const scene = { name: "Test", meshes: model.meshes, instances: [{ id: "one", modelName: model.meshes[0].name, ...IDENTITY, visible: true }] };
+  assert.deepEqual(parseWorld(JSON.stringify(scene)), scene);
+  assert.deepEqual(projectVertex({ x: 0, y: 0, z: 0 }, 600, 420, 8), { x: 300, y: 210, z: 8 });
+  assert.equal(projectVertex({ x: 0, y: 0, z: 8 }, 600, 420, 8), null);
+  assert.ok(projectVertex({ x: 1, y: 0, z: 4 }, 600, 420, 8).x > projectVertex({ x: 1, y: 0, z: 0 }, 600, 420, 8).x);
+  const transformed = transformVertex({ x: 1, y: 0, z: 0 }, { ...IDENTITY, rz: 90, tx: 2 });
+  assert.ok(Math.abs(transformed.x - 2) < 1e-9 && Math.abs(transformed.y - 1) < 1e-9);
+});
+
+test("ambient snapshots reach saved control consumers and math tables", () => {
+  const graph = { workspaces: [{ id: "mood", tool: { kind: "ambient-mood", output: '{"amplitude":4,"active":true}' } }, { id: "math", tool: { kind: "math-lab", expressions: "amplitude=1\ny=amplitude*x", parameters: {}, bounds: [0, 1, -5, 5] } }], wires: [{ source: "mood", target: "math" }] };
+  assert.equal(savedControls(graph, "math").amplitude, 4);
+  assert.deepEqual(workspaceTable(graph.workspaces[1], graph).rows[200], ["1", "4"]);
+});
+
+test("USB sends strict byte pairs and logs only a transfer view's actual bytes", () => {
+  assert.deepEqual([...parseHexBytes("DE ad\nBE EF")], [222, 173, 190, 239]);
+  for (const input of ["", "F", "XYZ", "DE A", "0xFF", "GG"]) assert.throws(() => parseHexBytes(input), /byte pairs/);
+  const buffer = new Uint8Array([99, 1, 2, 88]).buffer;
+  assert.deepEqual([...transferBytes(new DataView(buffer, 1, 2))], [1, 2]);
+});
+
+test("3D rendering centers projected faces and honors solid mode and culling", () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = { devicePixelRatio: 2 };
+  try {
+    const calls = [];
+    const ctx = { scale() {}, fillRect() {}, beginPath() {}, moveTo(x, y) { calls.push(["move", x, y]); }, lineTo() {}, closePath() {}, stroke() { calls.push(["stroke"]); }, fill() { calls.push(["fill"]); } };
+    const canvas = { clientWidth: 600, clientHeight: 420, getContext: () => ctx };
+    const mesh = { name: "Triangle", vertices: [{ x: -1, y: -1, z: 0 }, { x: 1, y: -1, z: 0 }, { x: 0, y: 1, z: 0 }], faces: [[0, 1, 2]], color: "#3b82f6" };
+    drawScene(canvas, [{ mesh, transform: IDENTITY }], { wireframe: false, culling: true });
+    assert.equal(canvas.width, 1200);
+    assert.equal(calls.filter(([kind]) => kind === "fill").length, 1);
+    assert.ok(calls.some(([kind, x, y]) => kind === "move" && x < 300 && y > 210));
+    calls.length = 0;
+    drawScene(canvas, [{ mesh: { ...mesh, faces: [[2, 1, 0]] }, transform: IDENTITY }], { wireframe: false, culling: true });
+    assert.equal(calls.filter(([kind]) => kind === "fill").length, 0);
+    calls.length = 0;
+    drawScene(canvas, [{ mesh, transform: IDENTITY }], { wireframe: true });
+    assert.equal(calls.filter(([kind]) => kind === "fill").length, 0);
+    assert.equal(calls.filter(([kind]) => kind === "stroke").length, 2);
+  } finally { globalThis.window = previousWindow; }
 });
 
 test("auto-update policy preserves explicit flags and legacy preview defaults", () => {
@@ -177,7 +247,7 @@ test("Math Lab publishes sampled tables using connected equations and knob overr
 });
 
 test("graph files roundtrip complete examples and accept raw API/store JSON", () => {
-  for (const name of ["oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio", "voice-to-ollama", "voice-expense-detective"]) {
+  for (const name of ["creative-workshop", "oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio", "voice-to-ollama", "voice-expense-detective"]) {
     const text = fs.readFileSync(new URL(`../public/examples/${name}.json`, import.meta.url), "utf8");
     const graph = parseGraphFile(text);
     assert.deepEqual(parseGraphFile(serializeGraph(graph)), graph);

@@ -44,6 +44,16 @@ damping with live knobs. Export sampled curves for further analysis.
 
 [Explore the example graph](frontend/public/examples/oscillator-lab.json)
 
+### Creative Workshop — circuits, models, art, and ambient controls
+
+Build a circuit, inspect a 3D mesh, place it in a scene, turn table data into
+character art, and derive ambient controls from text. The example includes all
+six new workspaces, a preloaded model/scene, a mood dashboard, and connected file
+exports. USB access begins only after connecting a device explicitly.
+
+[Explore the example graph](frontend/public/examples/creative-workshop.json) ·
+[Read the workspace reference](docs/WORKSPACES.md)
+
 **Try them:** [download a portable build](https://github.com/majiccode/indigoQ/releases),
 open the file-menu icon in the app header, and choose **Examples**. Each example
 loads a complete canvas you can explore and edit.
@@ -214,7 +224,8 @@ This explicitly replaces the current draft with a snapshot of the chosen output.
 
 ## Studio workspace collection
 
-Sixteen additional mini-apps are available from the workspace type picker:
+Additional mini-apps are available from the workspace type picker. See the
+[new workspace reference](docs/WORKSPACES.md) for setup, export formats, and current behavior.
 
 | Workspace | Working features and connections |
 |---|---|
@@ -229,12 +240,19 @@ Sixteen additional mini-apps are available from the workspace type picker:
 | **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, Word (.docx) documents, PDF text extraction, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
 | **Diff / Compare** | Two local or connected text sources, JSON formatting, line-level additions/removals, and publish-right-side action. |
 | **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces and saves `edited.png` into any connected FileWorkspace; connect to a vision-capable Ollama model. |
+| **ASCII Art** | Render connected images as ASCII or braille art, or Data Table / Math Lab tables as sparklines. Output is text — wire to Document Preview, Text to Speech, or any text consumer. Publish saves a `.txt` file into connected FileWorkspaces. |
+| **Ambient Mood** | Derive ambient controls (mood color, intensity, tempo, brightness, saturation) from connected text keywords or table statistics. Outputs `controls` — wire to Audio Lab, Simulation Lab, Dashboard, or Shared Controls to drive ambient behavior from document sentiment. |
+| **USB Debug** | Interrogate USB devices: connect, claim interfaces, read/write endpoints, view traffic as hex and ASCII. Chrome/Edge only, localhost or HTTPS, user approval required. Outputs text — wire to Document Preview or Text to Speech. |
+| **Electronic Workshop** | Circuit editor with component templates, built-in examples, connection checks, design JSON, and a downloadable planning package. |
+| **3D Modeler** | Add sample meshes, import model JSON, change mesh colors, and export reusable model JSON. |
+| **World Builder** | Place meshes from connected model exports, edit instance positions and scale, and export scene JSON. |
 | **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
 | **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
 | **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
 | **Chart Studio** | Connected tables as line, scatter, grouped bar, or histogram charts; X/Y/series mapping, hover values, log axes, reference line, zoom/pan, and brush selection. Publish all or selected rows as a table snapshot; export SVG or PNG, with PNG saved to outgoing FileWorkspaces. |
 | **Speech to Text** | Full-workspace live microphone FFT, red recording toggle, language selection, interim transcription preview, and persistent transcript with text download. Wire → TextEditor to append finalized phrases or → Ollama to dictate its prompt; other studio text consumers can read the live output. Uses browser Web Speech recognition, which may require internet. |
 | **Text to Speech** | Reads connected text aloud using your browser's built-in speech synthesis (no LLM or network needed). Connect Document Preview, TextEditor, Ollama, or another text source → here. Use **Speak it all** to read the full current text immediately, or **Follow** to read only text added after activation (for live/typing sources such as a TextEditor). Voice, rate, and pitch are honored from the dropdowns; click **Stop** to cancel. Voice options depend on your operating system. |
+| **System Monitor** | Live CPU, memory, disk, network, GPU, and process metrics from the local backend. |
 
 Speech to Text starts microphone access only after **Enable mic** or **Record**.
 Stopping recording leaves the microphone spectrum running; **Mic off** releases
@@ -271,6 +289,70 @@ Try these connections:
    each new sentence is read as it appears.
 3. **Ollama → Text to Speech:** run an Ollama generation, then press **Speak it
    all** to hear the model's response read aloud.
+
+### ASCII Art — render images and tables as text
+
+Wire **FileWorkspace → ASCII Art** (or **Data Table / Math Lab → ASCII Art**), then:
+
+- **Image mode** — select a connected image (the first is used by default), choose ASCII or Braille style, and adjust contrast, brightness, column count, and inversion. The source image appears on a canvas and the character output appears alongside it. **Publish TXT** publishes text and saves a text-file snapshot in the workspace and connected outgoing FileWorkspaces; **Download TXT** saves locally.
+- **Table mode** — renders numeric columns from a connected Data Table or Math Lab as sparklines (min → bar → max), giving a quick visual summary of table data as text.
+
+The preview is character art, rather than an image description. Both image and
+table previews support **Publish TXT** and **Download TXT**. Connect to
+**Document Preview** to display published text or select the published TXT file.
+
+### Ambient Mood — derive controls from text or table sentiment
+
+Wire **Document Preview**, **TextEditor**, **Ollama**, or **Data Table → Ambient Mood**. The workspace analyzes connected text (keyword-based mood detection) or table statistics (variance, mean) and outputs control values:
+
+- **moodColor** — a hue derived from emotional keywords (happy → yellow, calm → cyan, sad → blue, mysterious → purple, etc.)
+- **intensity** — how strong the detected mood is
+- **tempo** — a numeric tempo value derived from the analysis
+- **brightness** and **saturation** — color vividness
+- **active** — toggle
+
+Connect **Ambient Mood → Dashboard** to inspect these named values, or to an
+**HTML Playground** that reads them. Other control consumers respond only to
+matching parameter names; connecting `tempo` does not automatically change an
+Audio Lab `frequency` parameter.
+
+The workspace shows a color swatch and has a JSON control-definition panel.
+Analysis is keyword-based, with table statistics used when there is no connected
+text. Moving a control switches to manual mode; enable **Auto mood** to resume
+analysis. Custom control definitions are preserved.
+
+### USB Debug — interrogate USB devices
+
+Wire **USB Debug** → any text consumer (Document Preview, Text to Speech, etc.) to read data from USB devices.
+
+- **Connect** — click **Connect USB Device**, choose a device from the browser chooser, and approve access. Chrome/Edge only, served over localhost or HTTPS.
+- **Explore** — click **Explore Interfaces** to list interfaces and their IN/OUT endpoints.
+- **Claim** — select an interface to claim it, then read from its IN endpoint or write hex bytes to its OUT endpoint.
+- **Read** — **Read Once** requests 64 bytes; **Start Read** begins continuous reads and **Stop Read** stops further queued reads. **Disconnect** closes the device.
+- **Send** — type hex bytes (e.g. `DE AD BE EF`) and click **Send** to write to the OUT endpoint.
+- **Log** — traffic is shown as hex + ASCII with timestamps. The retained log is automatically published as text to downstream consumers.
+
+On Windows, the device may need a WinUSB or libusbK driver so Windows releases the interface for the browser to claim.
+
+See the [USB Debug reference](docs/WORKSPACES.md#usb-debug) for current connection
+and read-loop constraints.
+
+### Electronic Workshop, 3D Modeler, and World Builder
+
+- **Electronic Workshop:** add parts or choose **Blink LED** / **LCD Controller**
+  from the workspace's Examples selector. **Test circuit** checks basic
+  connections. **Save design ↓** stores and downloads circuit JSON;
+  **Manufacturing package ↓** downloads a text planning document.
+- **3D Modeler:** add a Cube, Pyramid, Spaceship, or Car, or drop a model JSON
+  file onto the canvas. Change mesh colors and use **Export model ↓** to store
+  and download the model.
+- **World Builder:** connect **3D Modeler → World Builder** and export the model.
+  Use **Place …** to add instances, edit position/rotation/scale on all three
+  axes, and use **Export world ↓** to save scene JSON including mesh geometry.
+
+Load **Examples → Creative Workshop** to try all six new tools on a connected
+canvas. The [workspace reference](docs/WORKSPACES.md) includes model JSON examples,
+export behavior, and the scope of circuit checks and 3D controls.
 
 The **Chart Studio** example in the Examples menu uses a small weekly-sales table
 with two regions. Brush points and publish them, import the result in Selected
@@ -321,6 +403,8 @@ The app header provides **Save JSON**, **Load JSON**, and **Examples**:
   - **Measured vs. Model:** embedded CSV → editable measurements → model/scatter comparison.
   - **Local AI Studio:** Ollama → equation editor → plot, and context → JSON extraction → table.
     Sample completed outputs are included; choose an installed model to generate new ones.
+   - **Creative Workshop:** circuit design, reusable 3D models and scenes,
+     table-to-ASCII publishing, text-to-mood controls, a dashboard, and USB Debug.
 
 Example files live in `frontend/public/examples/` and are served at `/examples/*.json`.
 Model generation never runs automatically when loading a graph.

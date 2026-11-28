@@ -134,6 +134,40 @@ location is `backend/data/graph.json`, with binaries in `backend/data/files/`.
 FileWorkspace offers **Grid** and **List** views. List shows file name, type, and
 size. Use the trash icon on a file to remove it.
 
+## Try the creative workspaces
+
+Open the file-menu icon in the app header and choose **Examples → Creative
+Workshop**. Save your current canvas before loading an example, because it
+replaces the graph.
+
+- **Electronic Workshop:** arrange parts, connect pins, run basic connectivity
+  checks, and export circuit JSON or a text planning package.
+- **3D Modeler → World Builder:** edit meshes, publish model snapshots, place
+  instances, and export a scene containing geometry and transforms.
+- **Data Table → ASCII Art → Document Preview:** publish character sparklines;
+  connect an image FileWorkspace to try ASCII or Braille conversion.
+- **TextEditor → Ambient Mood → Dashboard:** inspect mood controls or switch
+  between automatic analysis and manual values.
+- **USB Debug:** connect compatible hardware, explore interfaces and alternate
+  settings, claim an interface, and read/send endpoint data.
+
+See the [workspace reference](https://github.com/majiccode/indigoQ/blob/main/docs/WORKSPACES.md)
+for JSON formats, controls, persistence, and export behavior. Circuit checks are
+connectivity checks; the planning package is not a fabrication-ready PCB export.
+
+### Browser support
+
+The circuit, model, scene, and ASCII tools need no extra runtime or Ollama model.
+USB Debug requires WebUSB in a compatible Chrome/Edge browser and a secure
+context, such as the default `http://127.0.0.1:8787` or HTTPS. An ordinary HTTP
+address on another machine may not expose WebUSB.
+
+Device access requires a browser chooser approval and an available interface.
+On Windows, that interface may need a WinUSB or libusbK driver. **Stop Read**
+prevents further queued reads; a pending transfer may wait for device data.
+**Disconnect** closes the device. Graph loading does not reconnect USB hardware
+or start reads, spin, or AI generation.
+
 ## Ollama (optional)
 
 Portable builds connect to Ollama at `http://127.0.0.1:11434`.

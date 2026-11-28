@@ -3,9 +3,9 @@ import type { Graph, StudioKind, StudioState, Workspace } from "./types";
 export const STUDIO_NAMES: Record<StudioKind, string> = {
   controls: "Shared Controls", simulation: "Simulation Lab", playground: "HTML Playground",
   "audio-lab": "Audio / Signal Lab", "http-client": "HTTP / API Client", transform: "Transform",
-  "document-preview": "Document Preview", diff: "Diff / Compare", "image-studio": "Image Studio",
+  "document-preview": "Document Preview", "ascii-art": "ASCII Art", "ambient-mood": "Ambient Mood", "usb-debug": "USB Debug", diff: "Diff / Compare", "image-studio": "Image Studio",
   sql: "SQL Explorer", "model-bench": "Model Bench", knowledge: "Knowledge Library",
-  timeline: "Timeline / Sequencer", dashboard: "Dashboard", "chart-studio": "Chart Studio", "speech-to-text": "Speech to Text", "text-to-speech": "Text to Speech", "system-monitor": "System Monitor",
+  timeline: "Timeline / Sequencer", dashboard: "Dashboard", "chart-studio": "Chart Studio", "speech-to-text": "Speech to Text", "text-to-speech": "Text to Speech", "system-monitor": "System Monitor", "electronic-workspace": "Electronic Workshop", "model-workspace": "3D Modeler", "world-workspace": "World Builder",
 };
 export const CONTROL_EXAMPLE = JSON.stringify([
   { name: "amplitude", type: "number", value: 2, min: 0, max: 5, step: 0.01 },
@@ -29,6 +29,21 @@ export function studioDefault(kind: StudioKind): StudioState {
     transform: '{"name":"{{name}}","value":"{{value}}"}',
     "document-preview": "# A connected document\n\nEdit Markdown here, or choose a connected source.\n\nInline math: $E=mc^2$\n\n$$y = A \\sin(\\omega x)$$\n\n| Feature | Ready |\n|---|---|\n| Tables | ✓ |\n| Equations | ✓ |\n",
     sql: "SELECT * FROM input1 LIMIT 100",
+    "electronic-workspace": JSON.stringify({ version: 1, components: [
+      { id: "c1", type: "power", value: "5V", label: "V1", x: 100, y: 140, rotation: 0 },
+      { id: "c2", type: "resistor", value: "1000", label: "R1", x: 300, y: 140, rotation: 0 },
+      { id: "c3", type: "led", value: "", label: "LED1", x: 500, y: 140, rotation: 0 },
+      { id: "c4", type: "ground", value: "", label: "GND", x: 300, y: 300, rotation: 0 },
+    ], wires: [
+      { id: "w1", from: { comp: "c1", pin: 0 }, to: { comp: "c2", pin: 0 } },
+      { id: "w2", from: { comp: "c2", pin: 1 }, to: { comp: "c3", pin: 0 } },
+      { id: "w3", from: { comp: "c3", pin: 1 }, to: { comp: "c4", pin: 0 } },
+      { id: "w4", from: { comp: "c4", pin: 0 }, to: { comp: "c1", pin: 1 } },
+    ] }, null, 2),
+    "model-workspace": JSON.stringify({ version: 1, name: "Spaceship", vertices: [
+      [0,3,0],[2,0,2],[-2,0,2],[-2,0,-2],[2,0,-2],[0,-1,0]
+    ], faces: [[0,1,2],[0,2,3],[0,3,4],[0,4,1],[1,5,2],[2,5,3],[3,5,4],[4,5,1]] }, null, 2),
+    "world-workspace": JSON.stringify({ version: 1, name: "Scene", instances: [] }, null, 2),
   };
   return { kind, settings: {}, text: text[kind] ?? "", output: "", table: null, files: [] };
 }
@@ -62,7 +77,7 @@ export function savedControls(graph: Graph, id: string, visited = new Set<string
     if (seen.has(source.id)) continue;
     if (source.tool?.kind === "controls") {
       try { Object.assign(values, Object.fromEntries(parseControls(source.tool.text).map((control) => [control.name, control.value])), savedControls(graph, source.id, seen)); } catch {}
-    } else if (source.tool?.kind === "timeline") {
+    } else if (source.tool?.kind === "timeline" || source.tool?.kind === "ambient-mood") {
       try { Object.assign(values, JSON.parse(source.tool.output || "{}")); } catch {}
     }
   }

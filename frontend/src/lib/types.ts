@@ -63,7 +63,7 @@ export interface OllamaState {
   sourceIds: string[];
 }
 
-export type StudioKind = "controls" | "simulation" | "playground" | "audio-lab" | "http-client" | "transform" | "document-preview" | "diff" | "image-studio" | "sql" | "model-bench" | "knowledge" | "timeline" | "dashboard" | "chart-studio" | "speech-to-text" | "text-to-speech" | "system-monitor";
+export type StudioKind = "controls" | "simulation" | "playground" | "audio-lab" | "http-client" | "transform" | "document-preview" | "diff" | "image-studio" | "ascii-art" | "ambient-mood" | "usb-debug" | "sql" | "model-bench" | "knowledge" | "timeline" | "dashboard" | "chart-studio" | "speech-to-text" | "text-to-speech" | "system-monitor" | "electronic-workspace" | "model-workspace" | "world-workspace";
 export interface StudioState {
   kind: StudioKind;
   settings: Record<string, string | number | boolean>;

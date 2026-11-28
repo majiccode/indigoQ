@@ -27,7 +27,7 @@ export function connectedControls(graph: Graph, id: string, visited = new Set<st
     if (source.tool?.kind === "controls") {
       try { Object.assign(result, Object.fromEntries(parseControls(source.tool.text).map((item) => [item.name, item.value]))); } catch {}
     }
-    if (source.tool?.kind === "timeline") {
+    if (source.tool?.kind === "timeline" || source.tool?.kind === "ambient-mood") {
       try { Object.assign(result, JSON.parse(source.tool.output || "{}")); } catch {}
     }
     if (graph.workspaces.find((workspace) => workspace.id === id)?.autoUpdate !== false) Object.assign(result, values.get(source.id)?.controls);

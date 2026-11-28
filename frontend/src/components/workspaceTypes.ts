@@ -14,6 +14,9 @@ import SqlWorkspace from "./SqlWorkspace";
 import DocumentWorkspace from "./DocumentWorkspace";
 import DiffWorkspace from "./DiffWorkspace";
 import ImageWorkspace from "./ImageWorkspace";
+import ASCIIArtWorkspace from "./ASCIIArtWorkspace";
+import AmbientMoodWorkspace from "./AmbientMoodWorkspace";
+import UsbDebugWorkspace from "./UsbDebugWorkspace";
 import ModelBenchWorkspace from "./ModelBenchWorkspace";
 import KnowledgeWorkspace from "./KnowledgeWorkspace";
 import DashboardWorkspace from "./DashboardWorkspace";
@@ -21,49 +24,38 @@ import ChartWorkspace from "./ChartWorkspace";
 import TextToSpeechWorkspace from "./TextToSpeechWorkspace";
 import ReadAloudWorkspace from "./ReadAloudWorkspace";
 import SystemMonitorWorkspace from "./SystemMonitorWorkspace";
+import ElectronicWorkspace from "./ElectronicWorkspace";
+import ModelWorkspace from "./ModelWorkspace";
+import WorldWorkspace from "./WorldWorkspace";
 import { STUDIO_NAMES } from "@/lib/studio";
 import { registerWorkspaceType } from "@/lib/workspaceRegistry";
 
-registerWorkspaceType({
-  type: "content-source", name: "FileWorkspace", description: "Collect, preview, and share files.",
-  inputs: ["files"], outputs: ["files"], component: FileWorkspace,
-});
-
-registerWorkspaceType({
-  type: "text-editor", name: "TextEditor", description: "A living text editor with inline controls and visualizations.",
-  inputs: ["files", "text"], outputs: ["text", "files"], component: TextEditorWorkspace,
-});
-
-registerWorkspaceType({
-  type: "math-lab", name: "Math Lab", description: "Live equations, parameter knobs, and connected data plots.",
-  inputs: ["text", "table", "controls"], outputs: ["text", "table"], component: MathLabWorkspace,
-});
-
-registerWorkspaceType({ type: "controls", name: STUDIO_NAMES.controls, description: "Named sliders, toggles, colors, choices, and triggers.", inputs: ["controls"], outputs: ["controls", "text"], component: ControlsWorkspace });
-registerWorkspaceType({ type: "simulation", name: STUDIO_NAMES.simulation, description: "Animate springs, pendulums, orbits, populations, and epidemics.", inputs: ["controls"], outputs: ["table", "text"], component: SimulationWorkspace });
-registerWorkspaceType({ type: "timeline", name: STUDIO_NAMES.timeline, description: "Animate parameters and record incoming knob movements.", inputs: ["controls"], outputs: ["controls", "table", "text"], component: TimelineWorkspace });
-registerWorkspaceType({ type: "playground", name: STUDIO_NAMES.playground, description: "Sandboxed HTML/CSS/JS apps with live connected data.", inputs: ["text", "table", "controls"], outputs: ["text", "table"], component: PlaygroundWorkspace });
+registerWorkspaceType({ type: "ambient-mood", name: STUDIO_NAMES["ambient-mood"], description: "Derive ambient controls (color, intensity, tempo, brightness, saturation) from connected text or table data.", inputs: ["text", "table"], outputs: ["controls"], component: AmbientMoodWorkspace });
+registerWorkspaceType({ type: "ascii-art", name: "ASCII Art", description: "Render connected images or tables as ASCII/braille art and publish as text.", inputs: ["files", "table"], outputs: ["text", "files"], component: ASCIIArtWorkspace });
 registerWorkspaceType({ type: "audio-lab", name: STUDIO_NAMES["audio-lab"], description: "Synthesis, filters, oscilloscope, spectrum, and recording.", inputs: ["files", "text", "controls"], outputs: ["files"], component: AudioWorkspace });
-registerWorkspaceType({ type: "http-client", name: STUDIO_NAMES["http-client"], description: "Make HTTP requests and publish responses to the graph.", inputs: [], outputs: ["text", "table"], component: HttpWorkspace });
-registerWorkspaceType({ type: "transform", name: STUDIO_NAMES.transform, description: "JSON paths, filtering, templates, and regex extraction.", inputs: ["text", "table"], outputs: ["text", "table"], component: TransformWorkspace });
-registerWorkspaceType({ type: "sql", name: STUDIO_NAMES.sql, description: "Join and aggregate connected tables using read-only SQL.", inputs: ["table"], outputs: ["text", "table"], component: SqlWorkspace });
-registerWorkspaceType({ type: "document-preview", name: STUDIO_NAMES["document-preview"], description: "Preview connected PDF and Markdown files and publish their text for comparison.", inputs: ["text", "files"], outputs: ["text"], component: DocumentWorkspace });
-registerWorkspaceType({ type: "diff", name: STUDIO_NAMES.diff, description: "Compare local text, connected text, or files side by side.", inputs: ["text", "files"], outputs: ["text"], component: DiffWorkspace });
-registerWorkspaceType({ type: "image-studio", name: STUDIO_NAMES["image-studio"], description: "Crop, resize, adjust, annotate, and publish images.", inputs: ["files"], outputs: ["files", "text"], component: ImageWorkspace });
-registerWorkspaceType({ type: "model-bench", name: STUDIO_NAMES["model-bench"], description: "Compare local models and temperatures, then rate results.", inputs: ["text", "table"], outputs: ["text", "table"], component: ModelBenchWorkspace });
-registerWorkspaceType({ type: "knowledge", name: STUDIO_NAMES.knowledge, description: "Retrieve relevant document passages with source references.", inputs: ["files", "text"], outputs: ["text"], component: KnowledgeWorkspace });
-registerWorkspaceType({ type: "dashboard", name: STUDIO_NAMES.dashboard, description: "Compose connected charts, tables, documents, and media.", inputs: ["text", "table", "files", "controls"], outputs: [], component: DashboardWorkspace });
 registerWorkspaceType({ type: "chart-studio", name: STUDIO_NAMES["chart-studio"], description: "Explore tables with charts, brush rows, and export images.", inputs: ["table"], outputs: ["table", "text", "files"], component: ChartWorkspace });
+registerWorkspaceType({ type: "controls", name: STUDIO_NAMES.controls, description: "Named sliders, toggles, colors, choices, and triggers.", inputs: ["controls"], outputs: ["controls", "text"], component: ControlsWorkspace });
+registerWorkspaceType({ type: "content-source", name: "FileWorkspace", description: "Collect, preview, and share files.", inputs: ["files"], outputs: ["files"], component: FileWorkspace, });
+registerWorkspaceType({ type: "dashboard", name: STUDIO_NAMES.dashboard, description: "Compose connected charts, tables, documents, and media.", inputs: ["text", "table", "files", "controls"], outputs: [], component: DashboardWorkspace });
+registerWorkspaceType({ type: "data-table", name: "Data Table", description: "Explore, edit, and transform CSV and JSON data.", inputs: ["files", "text", "table"], outputs: ["text", "table"], component: DataTableWorkspace, });
+registerWorkspaceType({ type: "diff", name: STUDIO_NAMES.diff, description: "Compare local text, connected text, or files side by side.", inputs: ["text", "files"], outputs: ["text"], component: DiffWorkspace });
+registerWorkspaceType({ type: "document-preview", name: STUDIO_NAMES["document-preview"], description: "Preview connected PDF and Markdown files and publish their text for comparison.", inputs: ["text", "files"], outputs: ["text"], component: DocumentWorkspace });
+registerWorkspaceType({ type: "electronic-workspace", name: STUDIO_NAMES["electronic-workspace"], description: "Draw circuits, check connectivity, import designs, and export circuit JSON and planning notes.", inputs: ["text"], outputs: ["text", "files"], component: ElectronicWorkspace });
+registerWorkspaceType({ type: "http-client", name: STUDIO_NAMES["http-client"], description: "Make HTTP requests and publish responses to the graph.", inputs: [], outputs: ["text", "table"], component: HttpWorkspace });
+registerWorkspaceType({ type: "image-studio", name: STUDIO_NAMES["image-studio"], description: "Crop, resize, adjust, annotate, and publish images.", inputs: ["files"], outputs: ["files", "text"], component: ImageWorkspace });
+registerWorkspaceType({ type: "knowledge", name: STUDIO_NAMES.knowledge, description: "Retrieve relevant document passages with source references.", inputs: ["files", "text"], outputs: ["text"], component: KnowledgeWorkspace });
+registerWorkspaceType({ type: "math-lab", name: "Math Lab", description: "Live equations, parameter knobs, and connected data plots.", inputs: ["text", "table", "controls"], outputs: ["text", "table"], component: MathLabWorkspace, });
+registerWorkspaceType({ type: "model-bench", name: STUDIO_NAMES["model-bench"], description: "Compare local models and temperatures, then rate results.", inputs: ["text", "table"], outputs: ["text", "table"], component: ModelBenchWorkspace });
+registerWorkspaceType({ type: "model-workspace", name: STUDIO_NAMES["model-workspace"], description: "Wireframe 3D modeler with back-face culling. Build meshes, spin, export JSON models. Wire OllamaWorkspace → here for design help.", inputs: ["text", "controls"], outputs: ["text", "files"], component: ModelWorkspace });
+registerWorkspaceType({ type: "ollama", name: "Ollama", description: "Local AI with connected context and streaming output.", inputs: ["files", "text", "table"], outputs: ["text"], component: OllamaWorkspace, });
+registerWorkspaceType({ type: "playground", name: STUDIO_NAMES.playground, description: "Sandboxed HTML/CSS/JS apps with live connected data.", inputs: ["text", "table", "controls"], outputs: ["text", "table"], component: PlaygroundWorkspace });
+registerWorkspaceType({ type: "simulation", name: STUDIO_NAMES.simulation, description: "Animate springs, pendulums, orbits, populations, and epidemics.", inputs: ["controls"], outputs: ["table", "text"], component: SimulationWorkspace });
 registerWorkspaceType({ type: "speech-to-text", name: STUDIO_NAMES["speech-to-text"], description: "Live microphone spectrum and speech transcription to connected text workspaces. Reads connected text aloud.", inputs: ["text"], outputs: ["text"], component: TextToSpeechWorkspace });
-registerWorkspaceType({ type: "text-to-speech", name: "Text to Speech", description: "Reads connected text aloud using your browser's speech synthesis.", inputs: ["text"], outputs: [], component: ReadAloudWorkspace });
+registerWorkspaceType({ type: "sql", name: STUDIO_NAMES.sql, description: "Join and aggregate connected tables using read-only SQL.", inputs: ["table"], outputs: ["text", "table"], component: SqlWorkspace });
 registerWorkspaceType({ type: "system-monitor", name: STUDIO_NAMES["system-monitor"], description: "Live system metrics: CPU, memory, disk, network, GPU, and processes.", inputs: [], outputs: [], component: SystemMonitorWorkspace });
-
-registerWorkspaceType({
-  type: "data-table", name: "Data Table", description: "Explore, edit, and transform CSV and JSON data.",
-  inputs: ["files", "text", "table"], outputs: ["text", "table"], component: DataTableWorkspace,
-});
-
-registerWorkspaceType({
-  type: "ollama", name: "Ollama", description: "Local AI with connected context and streaming output.",
-  inputs: ["files", "text", "table"], outputs: ["text"], component: OllamaWorkspace,
-});
+registerWorkspaceType({ type: "text-editor", name: "TextEditor", description: "A living text editor with inline controls and visualizations.", inputs: ["files", "text"], outputs: ["text", "files"], component: TextEditorWorkspace, });
+registerWorkspaceType({ type: "text-to-speech", name: "Text to Speech", description: "Reads connected text aloud using your browser's speech synthesis.", inputs: ["text"], outputs: [], component: ReadAloudWorkspace });
+registerWorkspaceType({ type: "timeline", name: STUDIO_NAMES.timeline, description: "Animate parameters and record incoming knob movements.", inputs: ["controls"], outputs: ["controls", "table", "text"], component: TimelineWorkspace });
+registerWorkspaceType({ type: "transform", name: STUDIO_NAMES.transform, description: "JSON paths, filtering, templates, and regex extraction.", inputs: ["text", "table"], outputs: ["text", "table"], component: TransformWorkspace });
+registerWorkspaceType({ type: "usb-debug", name: STUDIO_NAMES["usb-debug"], description: "Interrogate USB devices: read/write endpoints, view traffic as hex and ASCII, publish data as text.", inputs: [], outputs: ["text"], component: UsbDebugWorkspace });
+registerWorkspaceType({ type: "world-workspace", name: STUDIO_NAMES["world-workspace"], description: "Scene composer. Place model instances, position them, export world JSON. Wire ModelWorkspace → here for models.", inputs: ["text", "controls"], outputs: ["text", "files"], component: WorldWorkspace });

@@ -7,6 +7,7 @@ import { downloadText } from "@/lib/workspaceData";
 import { exportGraph } from "@/lib/graphApi";
 
 const EXAMPLES = [
+  { file: "creative-workshop", name: "Creative Workshop", description: "Circuits, 3D models and scenes, ASCII art, ambient controls, and USB debugging." },
   { file: "oscillator-lab", name: "Oscillator Lab", description: "Editor equations → live knobs and plots → sampled table." },
   { file: "measurements", name: "Measured vs. Model", description: "CSV files → editable table → scatter overlay on a mathematical model." },
   { file: "chart-studio", name: "Chart Studio", description: "Weekly sales → interactive charts → selected rows and PNG exports." },

@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -49,7 +49,81 @@ const guides = [
     note: "With a local Ollama model and local inputs, this workflow runs on your computer. HTTP workspaces and any external URLs you configure can still access network services.",
     related: "local-ai", relatedName: "Local AI Studio", image: "oscillator-lab.png",
   },
+  {
+    slug: "ascii-art-images-to-text", title: "Turn images and tables into ASCII art", category: "Files → ASCII art → text",
+    description: "Render connected images as ASCII or braille characters, and tables as sparklines. Output is text — wire it anywhere text is accepted.",
+    intro: "Turn a picture into characters, or a data table into a compact sparkline strip. Publish the text to Document Preview or save a TXT snapshot into connected FileWorkspaces.",
+    flow: "FileWorkspace / Data Table → ASCII Art → Document Preview",
+    steps: [
+      ["Connect an image source", "Drop an image into a FileWorkspace, then wire it to an ASCII Art workspace. Choose Image → ASCII mode, pick ASCII or Braille style, and adjust contrast, brightness, and column count until the preview looks right."],
+      ["Publish or download the text", "Click Publish TXT to save the art as a text file into any connected FileWorkspace, or Download TXT to save it locally. The output flows like any other text source."],
+      ["Send it downstream", "Wire ASCII Art → Document Preview to embed art in a report. Table mode accepts a connected Data Table or Math Lab and supports both Publish TXT and Download TXT. Character art represents shapes, rather than describing the original image."],
+    ],
+    note: "ASCII art is text, not an image. Auto-contrast stretches each image’s tonal range by default, but use the Contrast slider if the preview looks washed out.",
+    related: "creative-workshop", relatedName: "Creative Workshop", image: null,
+  },
+  {
+    slug: "ambient-mood-from-text", title: "Drive ambient controls from document sentiment", category: "Text → controls → ambient",
+    description: "Derive ambient control values (mood color, intensity, tempo, brightness, saturation) from connected text keywords or table statistics.",
+    intro: "Analyze emotional keywords or table statistics and turn them into named control values. Inspect the result in Dashboard or consume the mood values in an HTML Playground.",
+    flow: "TextEditor / Data Table → Ambient Mood → Dashboard / HTML Playground",
+    steps: [
+      ["Connect a text or table source", "Wire Document Preview, TextEditor, Ollama, or Data Table → Ambient Mood. The workspace reads the connected text or table automatically."],
+      ["Watch the mood build", "Text is scanned for emotional keywords (happy → yellow, calm → cyan, sad → blue, mysterious → purple). Tables are scored by variance and mean. The result shows as a color swatch in the header."],
+      ["Wire controls downstream", "Connect Ambient Mood → Dashboard to inspect moodColor, intensity, tempo, brightness, saturation, and active. HTML Playground can read these names from connected controls. Other tools respond only to matching parameter names."],
+    ],
+    note: "Auto mood updates built-in values while preserving your control definitions. Moving a control switches to manual mode; enable Auto mood to resume analysis. This is keyword-based analysis.",
+    related: "creative-workshop", relatedName: "Creative Workshop", image: null,
+  },
+  {
+    slug: "usb-debug-devices", title: "Read and write USB devices", category: "USB → text → downstream",
+    description: "Interrogate USB devices from the browser: connect, claim interfaces, read/write endpoints, view traffic as hex and ASCII.",
+    intro: "Talk directly to USB hardware from indigoQ. Connect a device, claim its interface, read incoming bytes, or send commands — all as text you can wire anywhere.",
+    flow: "USB device → USB Debug → Document Preview / Ollama",
+    steps: [
+      ["Connect a device", "Create a USB Debug workspace and click Connect USB Device. Choose your device from the browser chooser and approve access. Chrome or Edge on desktop/Android, served over localhost or HTTPS."],
+      ["Explore interfaces", "Click Explore Interfaces to list the device’s interfaces and their IN/OUT endpoints, then claim the interface you want to use."],
+      ["Read and write", "Click Read Once to grab 64 bytes, or Start Read to poll continuously. Type hex bytes (DE AD BE EF) and click Send to write to the OUT endpoint. Traffic appears as hex + ASCII with timestamps."],
+      ["Wire downstream", "USB Debug publishes text output — connect it to Document Preview to inspect, Text to Speech to hear readings aloud, or Ollama to interpret device data."],
+    ],
+    note: "Stop Read prevents further queued reads; an in-flight transfer may finish when device data arrives. Disconnect closes the device. WebUSB requires browser approval; Windows may need a WinUSB driver for the claimed interface.",
+    related: "creative-workshop", relatedName: "Creative Workshop", image: null,
+  },
+  {
+    slug: "electronic-workshop-circuits", title: "Build and share circuit designs", category: "Parts → connections → design JSON",
+    description: "Arrange circuit components, connect pins, check connectivity, and export designs and planning notes with Electronic Workshop.",
+    intro: "Keep parts and wiring visible while planning a device. Electronic Workshop includes component templates, sample circuits, and JSON exports.",
+    flow: "Electronic Workshop → circuit JSON / planning notes → FileWorkspace",
+    steps: [
+      ["Start a circuit", "Load Creative Workshop from the app’s Examples menu, then open Electronic Workshop fullscreen. Add parts or choose Blink LED or LCD Controller from the workspace’s example selector."],
+      ["Arrange and connect", "Drag parts, edit labels and values, and rotate selected components. Click two pins to connect them. Double-click a wire to remove it, or delete a selected part and its wires."],
+      ["Check and export", "Test circuit checks basic power/ground connectivity and direct shorts. Save design publishes circuit JSON and saves it into outgoing FileWorkspaces. Manufacturing package exports a text planning document with a BOM, nets, and placement notes."],
+    ],
+    note: "Connectivity checks are not an electrical simulation. The planning package is a text document, not fabrication-ready Gerber/drill files. Ask AI prepares a prompt for an explicit Ollama run.",
+    related: "creative-workshop", relatedName: "Creative Workshop", image: null,
+  },
+  {
+    slug: "3d-models-and-worlds", title: "Compose a scene from reusable 3D models", category: "Meshes → instances → portable scene",
+    description: "Create meshes in 3D Modeler, place them in World Builder, and export a scene with geometry and transforms.",
+    intro: "Make a model, inspect it in a perspective view, and place instances in a scene. Model and scene edits are saved with your graph.",
+    flow: "3D Modeler → World Builder → scene JSON / FileWorkspace",
+    steps: [
+      ["Create a model", "Load Creative Workshop, or add a 3D Modeler. Add sample meshes or import model JSON, edit mesh names and colors, then try view transforms, Solid, Culling, and Spin."],
+      ["Publish and place", "Export model publishes a reusable snapshot. Connect 3D Modeler → World Builder and use Place mesh-name to add instances. Connected model exports refresh World Builder’s asset list."],
+      ["Arrange and export the scene", "Edit each instance’s position, rotation, and scale along all three axes, or toggle visibility. Export world includes mesh geometry in the scene JSON and saves it into connected outgoing FileWorkspaces."],
+    ],
+    note: "Model view controls adjust the preview; mesh geometry remains reusable. Export is explicit, and spin starts only on a click. Scene exports include assets so they can be imported independently.",
+    related: "creative-workshop", relatedName: "Creative Workshop", image: null,
+  },
 ];
+
+const guideSlugs = new Set();
+for (const guide of guides) {
+  if (guideSlugs.has(guide.slug)) throw new Error(`Duplicate guide slug: ${guide.slug}`);
+  guideSlugs.add(guide.slug);
+  if (guide.related && !existsSync(path.join(root, "frontend/public/examples", `${guide.related}.json`))) throw new Error(`Missing example for ${guide.slug}: ${guide.related}`);
+  if (guide.image && !existsSync(path.join(root, "docs/screenshots", guide.image))) throw new Error(`Missing guide image: ${guide.image}`);
+}
 
 function layout({ title, description, slug = "", body, article = false }) {
   const url = `${origin}${base}${slug ? `${slug}/` : ""}`;
@@ -64,7 +138,7 @@ function layout({ title, description, slug = "", body, article = false }) {
     screenshot: origin + base + "images/interactive-studio.png", isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     author: { "@type": "Person", name: "Paul Adams", url: "https://github.com/majiccode" },
-    featureList: ["Infinite visual workspace canvas", "PDF preview and text comparison", "CSV tables and interactive charts", "Local AI through Ollama", "Live equations and simulations"],
+    featureList: ["Infinite visual workspace canvas", "PDF preview and text comparison", "CSV tables and interactive charts", "Local AI through Ollama", "Live equations and simulations", "Circuit editing and connectivity checks", "3D modeling and scene composition", "ASCII and Braille art", "Text-derived ambient controls", "Browser USB debugging"],
   };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -89,22 +163,37 @@ cpSync(path.join(root, "site/style.css"), path.join(output, "style.css"));
 cpSync(path.join(root, "site/google8ee8483728291f13.html"), path.join(output, "google8ee8483728291f13.html"));
 const body = `<section class="hero wrap"><div class="eyebrow">VISUAL WORKFLOWS · LOCAL-FIRST · OPEN SOURCE</div>
 <h1>Your ideas.<br>Your data.<br><span>Connected.</span></h1>
-<p class="lead">indigoQ is a local-first visual workbench for files, data, and AI. Connect workspaces on an infinite canvas to explore documents, build charts, and experiment with local models.</p>
+<p class="lead">indigoQ is a local-first visual workbench for files, data, AI, and creative tools. Connect workspaces on an infinite canvas to explore documents, build charts, design circuits, compose 3D scenes, and experiment with local models.</p>
 <div class="actions"><a class="button" href="#download">Download indigoQ <span aria-hidden="true">↓</span></a><a class="text-link" href="#examples">See what you can build →</a></div><p class="muted">Free portable builds for macOS, Windows, and Linux. No Node or Python install needed.</p></section>
 <figure class="hero-image wrap"><img src="${base}images/interactive-studio.png" width="1760" height="1080" alt="indigoQ infinite canvas connecting shared controls, a spring simulation, an HTML playground, a live curve, and an experiment dashboard" fetchpriority="high"><figcaption>One canvas. Connected controls, simulations, equations, and dashboards.</figcaption></figure>
 <section class="wrap section" id="examples"><div class="eyebrow">LESS SETUP. MORE EXPLORING.</div><h2>A small workspace for each big idea.</h2><p class="intro">Start from a bundled example, connect the pieces, and make it your own.</p>
 <div class="feature-grid"><article class="card"><span class="tag">01 / DATA</span><h3>From rows to insight</h3><p>Edit tables, compare chart series, brush points, and export the results. Keep your data flow visible as it grows.</p><a href="${base}csv-data-visualization/">Explore CSV & chart workflows →</a></article><article class="card"><span class="tag">02 / DOCUMENTS</span><h3>Read. Connect. Compare.</h3><p>Preview PDFs and Markdown, pick different files in separate workspaces, and compare their extracted text.</p><a href="${base}compare-pdf-documents-locally/">Compare two PDFs locally →</a></article><article class="card"><span class="tag">03 / LOCAL AI</span><h3>Give your model a workbench</h3><p>Connect Ollama output to equations, JSON transforms, and tables. Inspect each step and keep control of what runs.</p><a href="${base}local-ai-workflows-ollama/">Build an Ollama workflow →</a></article></div>
 <div class="showcase"><img src="${base}images/chart-studio.png" width="1280" height="1200" loading="lazy" alt="Chart Studio plotting weekly sales for North and South regions with chart controls and export tools"><div><div class="eyebrow">CHART STUDIO</div><h2>Your data has a story.<br>Find its shape.</h2><p>Line, scatter, bar, and histogram charts. Multiple series. Selection brushes. Exportable images and data.</p><a class="text-link" href="${base}csv-data-visualization/">Follow the charting guide →</a></div></div>
 <div class="showcase reverse"><img src="${base}images/oscillator-lab.png" width="1280" height="1200" loading="lazy" alt="Oscillator Lab with amplitude, frequency, and damping knobs controlling a damped sine wave"><div><div class="eyebrow">OSCILLATOR LAB</div><h2>Make equations<br>feel tangible.</h2><p>Connect a text editor to a live mathematical plot. Turn amplitude, frequency, and damping knobs, then export sampled curves.</p><p>Load <strong>Oscillator Lab</strong> from the Examples menu to try it.</p><a class="text-link" href="${repo}/blob/main/frontend/public/examples/oscillator-lab.json">View the example graph →</a></div></div></section>
+<section class="wrap section" id="creative-workshop"><div class="eyebrow">SIX NEW TOOLS. ONE CONNECTED CANVAS.</div><h2>Make room for your next project.</h2><p class="intro">Load <strong>Examples → Creative Workshop</strong> in the app for a prewired circuit editor, model and scene, table-to-art report, mood dashboard, and USB debugging workspace.</p>
+<div class="feature-grid">
+<article class="card"><span class="tag">CIRCUITS</span><h3>Plan parts and connections</h3><p>Add components, wire pins, check basic power/ground connectivity, and export circuit JSON and planning notes.</p><a href="${base}electronic-workshop-circuits/">Explore Electronic Workshop →</a></article>
+<article class="card"><span class="tag">MODELS & SCENES</span><h3>Build once. Place anywhere.</h3><p>Inspect meshes with perspective, solid/wireframe views, and spin. Place instances in World Builder and export scenes with geometry.</p><a href="${base}3d-models-and-worlds/">Compose a 3D scene →</a></article>
+<article class="card"><span class="tag">CHARACTER ART</span><h3>Give images a text texture</h3><p>Convert images to ASCII or Braille and numeric tables to sparklines. Publish text to a report or save TXT files.</p><a href="${base}ascii-art-images-to-text/">Create character art →</a></article>
+<article class="card"><span class="tag">AMBIENT MOOD</span><h3>Turn a mood into values</h3><p>Ambient Mood derives color, intensity, and tempo from keywords or table statistics. Inspect values in Dashboard or use them in an HTML Playground.</p><a href="${base}ambient-mood-from-text/">Connect mood controls →</a></article>
+<article class="card"><span class="tag">USB DEBUG</span><h3>See the bytes behind a device</h3><p>Choose a USB device, claim an interface, read and send hex bytes, and publish the traffic log. Requires WebUSB in Chrome/Edge.</p><a href="${base}usb-debug-devices/">Read the USB guide →</a></article>
+<article class="card"><span class="tag">STARTER CANVAS</span><h3>A project ready to explore</h3><p>Sample model and scene data, table art, text-derived controls, and connected Export Files are included. Exports are explicit; device access starts on a click.</p><a href="${repo}/blob/main/frontend/public/examples/creative-workshop.json">View Creative Workshop JSON →</a></article>
+</div><p><a href="${repo}/blob/main/docs/WORKSPACES.md">Workspace reference: formats, controls, and exports →</a></p></section>
 <section class="band"><div class="wrap section"><div class="eyebrow">A WORKBENCH THAT RUNS WHERE YOU DO</div><h2>Local by default.<br>Flexible by design.</h2><div class="feature-grid compact"><div><h3>Keep your files nearby</h3><p>The app runs on your machine. Uploaded files live beside the graph as binaries, organized by workspace.</p></div><div><h3>Choose when AI runs</h3><p>Ollama is optional and installed separately. Local models run explicitly; HTTP tools can connect to services you choose.</p></div><div><h3>Take your work with you</h3><p>Save a portable JSON export with your graph and files. Load it later or share it with someone else.</p></div></div></div></section>
 <section class="wrap section" id="guides"><div class="eyebrow">PICK A FIRST PROJECT</div><h2>A useful workflow in a few steps.</h2><div class="guide-list">${guides.map(guide => `<a href="${base}${guide.slug}/"><span>${escape(guide.category)}</span><h3>${escape(guide.title)}</h3><span aria-hidden="true">↗</span></a>`).join("")}</div></section>
 <section class="wrap section download" id="download"><div class="eyebrow">READY WHEN YOU ARE</div><h2>Download. Unpack. Connect.</h2><p class="intro">Get the latest free portable release. The bundle includes the frontend, backend, and Python runtime.</p><div class="actions"><a class="button" href="${repo}/releases/latest">Download for macOS, Windows & Linux ↗</a><a class="text-link" href="${repo}/blob/main/docs/INSTALL.md">Installation guide →</a></div><ol class="quick-start"><li>Choose the archive for your operating system and unpack it.</li><li>Launch <strong>Start indigoQ</strong> from the extracted folder.</li><li>Open the local address shown by the launcher, normally <code>http://127.0.0.1:8787</code>.</li><li>Choose the file-menu icon → <strong>Examples</strong> to explore a ready-made canvas.</li></ol><p class="muted">The website is a guide to the app. Your workspace runs locally after download.</p></section>
 <section class="wrap support-section" aria-labelledby="support-title"><div class="support-card"><div><div class="eyebrow">INDEPENDENTLY BUILT. COMMUNITY SUPPORTED.</div><h2 id="support-title">Finding indigoQ useful?</h2><p>I’m Paul, the developer behind indigoQ. If it saves you time or sparks an idea, a donation is a lovely way to support its continued development. Thank you!</p></div><a class="button donate" href="https://paypal.me/pdgadams"><span aria-hidden="true">♡</span> Donate via PayPal ↗</a></div></section>
 <section class="wrap section faq"><h2>A few things to know.</h2><details><summary>Is indigoQ free?</summary><p>Yes. The source and portable releases are freely available on GitHub. If it saves you time, you can <a href="https://paypal.me/pdgadams">support development via PayPal</a>.</p></details><details><summary>Do I need Ollama?</summary><p>Only for local AI features. Tables, charts, PDF previews, text comparison, mathematical plots, and the canvas work without it.</p></details><details><summary>Can I compare scanned PDFs?</summary><p>You can preview scanned PDFs. Text comparison requires extractable text; OCR is not currently included.</p></details><details><summary>Where should I send feedback?</summary><p>Please <a href="${repo}/issues">open a GitHub issue</a> with what you tried, your operating system, and any error message. Small, specific examples are especially helpful.</p></details></section>`;
-writeFileSync(path.join(output, "index.html"), layout({ title: "indigoQ — Local-first visual workbench for files, data & AI", description: "Connect files, PDF previews, charts, equations, and local AI on an infinite canvas. Download indigoQ free for macOS, Windows, and Linux.", body }));
+writeFileSync(path.join(output, "index.html"), layout({ title: "indigoQ — Local-first visual workbench for data, AI & creative tools", description: "Connect documents, charts, local AI, circuits, 3D scenes, ASCII art, and ambient controls on an infinite canvas. Free for macOS, Windows, and Linux.", body }));
 for (const guide of guides) {
   mkdirSync(path.join(output, guide.slug), { recursive: true });
-  const body = `<article class="wrap article"><a class="breadcrumb" href="${base}">← indigoQ</a><div class="eyebrow">${escape(guide.category)}</div><h1>${escape(guide.title)}</h1><p class="lead">${escape(guide.intro)}</p><p>Before you start, <a href="${base}#download">download and launch indigoQ</a>. The app runs on your own computer.</p>${guide.image ? `<figure><img src="${base}images/${guide.image}" width="1280" height="1200" alt="${guide.slug === "csv-data-visualization" ? "Chart Studio with weekly sales plotted across two regions" : "An example of live equations and mathematical plots in indigoQ"}"><figcaption>${guide.slug === "csv-data-visualization" ? "The bundled Chart Studio example, opened fullscreen." : "Math Lab: one destination for equations in a local AI workflow."}</figcaption></figure>` : `<div class="flow" aria-label="Workflow">FileWorkspace → two Document Previews → Diff / Compare</div>`}<ol class="steps">${guide.steps.map(([title, text]) => `<li><h2>${escape(title)}</h2><p>${escape(text)}</p></li>`).join("")}</ol><aside class="note"><h2>Good to know</h2><p>${escape(guide.note)}</p></aside><h2>Keep exploring</h2><p>Try the bundled <strong>${guide.relatedName}</strong> example from the file-menu icon → Examples. <a href="${repo}/blob/main/frontend/public/examples/${guide.related}.json">View its saved graph on GitHub</a>.</p><div class="actions"><a class="button" href="${base}#download">Get indigoQ ↓</a><a href="${repo}/issues">Questions or feedback?</a></div><nav class="related" aria-label="More workflow guides">${guides.filter(item => item !== guide).map(item => `<a href="${base}${item.slug}/">${escape(item.title)} →</a>`).join("")}</nav></article>`;
+  const visual = guide.image
+    ? `<figure><img src="${base}images/${guide.image}" width="1280" height="1200" alt="${escape(guide.title)}"><figcaption>${escape(guide.relatedName)} example, opened fullscreen.</figcaption></figure>`
+    : `<div class="flow" aria-label="Workflow">${escape(guide.flow ?? "FileWorkspace → two Document Previews → Diff / Compare")}</div>`;
+  const related = guide.related
+    ? `<p>Try the bundled <strong>${escape(guide.relatedName)}</strong> example from the file-menu icon → Examples. <a href="${repo}/blob/main/frontend/public/examples/${guide.related}.json">View its saved graph on GitHub</a>.</p>`
+    : `<p><a href="${repo}/blob/main/docs/WORKSPACES.md">Read the workspace reference</a> for formats and setup.</p>`;
+  const body = `<article class="wrap article"><a class="breadcrumb" href="${base}">← indigoQ</a><div class="eyebrow">${escape(guide.category)}</div><h1>${escape(guide.title)}</h1><p class="lead">${escape(guide.intro)}</p><p>Before you start, <a href="${base}#download">download and launch indigoQ</a>. The app runs on your own computer.</p>${visual}<ol class="steps">${guide.steps.map(([title, text]) => `<li><h2>${escape(title)}</h2><p>${escape(text)}</p></li>`).join("")}</ol><aside class="note"><h2>Good to know</h2><p>${escape(guide.note)}</p></aside><h2>Keep exploring</h2>${related}<div class="actions"><a class="button" href="${base}#download">Get indigoQ ↓</a><a href="${repo}/issues">Questions or feedback?</a></div><nav class="related" aria-label="More workflow guides">${guides.filter(item => item !== guide).map(item => `<a href="${base}${item.slug}/">${escape(item.title)} →</a>`).join("")}</nav></article>`;
   writeFileSync(path.join(output, guide.slug, "index.html"), layout({ ...guide, body, article: true }));
 }
 writeFileSync(path.join(output, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["", ...guides.map(guide => guide.slug + "/")].map(slug => `<url><loc>${origin}${base}${slug}</loc></url>`).join("")}</urlset>\n`);

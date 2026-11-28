@@ -1,0 +1,31 @@
+{
+  "format": "indigoq",
+  "version": 1,
+  "graph": {
+    "workspaces": [
+      { "id": "creative-notes", "name": "Start here — Creative Workshop", "type": "text-editor", "x": 0, "y": 0, "width": 420, "height": 440, "contents": [], "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "CREATIVE WORKSHOP\n\n1. Open 3D Modeler fullscreen. Try Solid, Culling, Spin, and the transform inputs. Export model to update World Builder.\n2. Open World Builder, place another mesh, edit position/rotation/scale, then Export world. Scene JSON includes geometry.\n3. Open Electronic Workshop, add parts or load an example, click pins to connect, and Test circuit. Save design publishes JSON; Manufacturing package exports planning notes.\n4. ASCII Art reads the sample table. Publish TXT sends the sparklines to the report and Export Files. Connect an image FileWorkspace to try ASCII/Braille image conversion.\n5. Mood Text drives Ambient Mood. Inspect named controls in Dashboard; edit the text and toggle Auto mood.\n6. USB Debug requires compatible hardware and Chrome/Edge. Connect, Explore Interfaces, claim an interface, then read/send. No device access starts automatically.\n" } },
+      { "id": "creative-model", "name": "3D Modeler", "type": "model-workspace", "x": 500, "y": 0, "width": 650, "height": 600, "contents": [], "tool": { "kind": "model-workspace", "settings": {}, "text": "{\"version\":1,\"name\":\"Triangle model\",\"meshes\":[{\"name\":\"Triangle\",\"vertices\":[{\"x\":-1,\"y\":-1,\"z\":0},{\"x\":1,\"y\":-1,\"z\":0},{\"x\":0,\"y\":1,\"z\":0}],\"faces\":[[0,1,2]],\"color\":\"#3b82f6\"}]}", "output": "{\"meshes\":[{\"name\":\"Triangle\",\"vertices\":[{\"x\":-1,\"y\":-1,\"z\":0},{\"x\":1,\"y\":-1,\"z\":0},{\"x\":0,\"y\":1,\"z\":0}],\"faces\":[[0,1,2]],\"color\":\"#3b82f6\"}]}" } },
+      { "id": "creative-world", "name": "World Builder", "type": "world-workspace", "x": 1250, "y": 0, "width": 650, "height": 600, "contents": [], "tool": { "kind": "world-workspace", "settings": {}, "text": "{\"version\":1,\"name\":\"Triangle Scene\",\"instances\":[{\"id\":\"triangle-1\",\"modelName\":\"Triangle\",\"tx\":0,\"ty\":0,\"tz\":0,\"rx\":0,\"ry\":0,\"rz\":0,\"sx\":2,\"sy\":2,\"sz\":2,\"visible\":true}]}", "output": "" } },
+      { "id": "creative-circuit", "name": "Electronic Workshop", "type": "electronic-workspace", "x": 500, "y": 700, "width": 800, "height": 620, "contents": [] },
+      { "id": "creative-data", "name": "Sample Table", "type": "data-table", "x": 0, "y": 700, "width": 400, "height": 330, "contents": [], "tool": { "kind": "data-table", "columns": ["sample", "value"], "rows": [["1", "4"], ["2", "7"], ["3", "3"], ["4", "9"], ["5", "6"]] } },
+      { "id": "creative-ascii", "name": "ASCII Art", "type": "ascii-art", "x": 0, "y": 1120, "width": 420, "height": 350, "contents": [], "tool": { "kind": "ascii-art", "settings": { "mode": "table" }, "text": "", "output": "" } },
+      { "id": "creative-text", "name": "Mood Text", "type": "text-editor", "x": 0, "y": 1570, "width": 420, "height": 300, "contents": [], "editor": { "name": "mood.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "A calm and peaceful evening, relaxed and serene." } },
+      { "id": "creative-mood", "name": "Ambient Mood", "type": "ambient-mood", "x": 500, "y": 1570, "width": 500, "height": 480, "contents": [] },
+      { "id": "creative-dashboard", "name": "Mood Dashboard", "type": "dashboard", "x": 1100, "y": 1570, "width": 550, "height": 480, "contents": [] },
+      { "id": "creative-report", "name": "Art Report", "type": "document-preview", "x": 1400, "y": 700, "width": 500, "height": 400, "contents": [] },
+      { "id": "creative-files", "name": "Export Files", "type": "content-source", "x": 2000, "y": 0, "width": 420, "height": 500, "contents": [] },
+      { "id": "creative-usb", "name": "USB Debug", "type": "usb-debug", "x": 1800, "y": 1570, "width": 550, "height": 450, "contents": [] }
+    ],
+    "wires": [
+      { "id": "creative-model-world", "source": "creative-model", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-world", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "creative-model-files", "source": "creative-model", "sourcePort": { "side": "right", "t": 0.8 }, "target": "creative-files", "targetPort": { "side": "left", "t": 0.2 } },
+      { "id": "creative-world-files", "source": "creative-world", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-files", "targetPort": { "side": "left", "t": 0.4 } },
+      { "id": "creative-circuit-files", "source": "creative-circuit", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-files", "targetPort": { "side": "left", "t": 0.6 } },
+      { "id": "creative-data-ascii", "source": "creative-data", "sourcePort": { "side": "bottom", "t": 0.5 }, "target": "creative-ascii", "targetPort": { "side": "top", "t": 0.5 } },
+      { "id": "creative-ascii-report", "source": "creative-ascii", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-report", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "creative-ascii-files", "source": "creative-ascii", "sourcePort": { "side": "right", "t": 0.8 }, "target": "creative-files", "targetPort": { "side": "left", "t": 0.8 } },
+      { "id": "creative-text-mood", "source": "creative-text", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-mood", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "creative-mood-dashboard", "source": "creative-mood", "sourcePort": { "side": "right", "t": 0.5 }, "target": "creative-dashboard", "targetPort": { "side": "left", "t": 0.5 } }
+    ]
+  }
+}
