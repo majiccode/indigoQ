@@ -175,6 +175,24 @@ named assets.
 Populate `meshes` with the model format above, or supply a connected model source.
 Legacy scene files without geometry remain supported. Scene limit: 1,000 instances.
 
+## Document Preview and connected video
+
+Connect a FileWorkspace containing a video to **Document Preview** and choose
+the file in **Document source**. Native playback controls provide play/pause,
+seeking, volume, and fullscreen where supported by the browser. A download link
+remains available when the browser cannot play the file or codec.
+
+The same video player is used in FileWorkspace's file viewer and connected
+Dashboard cards. Files produced by another workspace can also be selected when
+that source advertises file output. Playback starts explicitly; switching files
+replaces the player. Videos publish no transcript/text, so selecting a video
+clears the previously published document text rather than passing stale text to
+Text to Speech or Diff / Compare.
+
+MP4, WebM, and other video MIME types are recognized. Common filename extensions
+are a fallback for missing/generic MIME types; explicit `audio/webm` recordings
+remain audio. Container detection does not guarantee browser codec support.
+
 ## Related documentation
 
 - [README: workspaces and persistence](../README.md#live-controls-and-saved-outputs)

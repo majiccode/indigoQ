@@ -1510,3 +1510,7 @@ input:focus-visible {
 .ascii-preview { flex: 1 1 280px; min-width: 0; max-height: 600px; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .usb-log { max-height: 400px; overflow: auto; padding: 6px; background: #0b1120; border: 1px solid #364232; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .studio-electronic-workspace pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.video-preview { width: 100%; min-width: 0; margin: 12px 0; }
+.video-preview video { display: block; width: 100%; max-height: 70vh; background: #000; border-radius: 6px; }
+.video-preview figcaption { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; overflow-wrap: anywhere; }
+.video-preview small { color: #9cad91; }

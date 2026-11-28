@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import type { ContentEntry } from "@/lib/types";
+import { isVideo } from "@/lib/media";
+import VideoPreview from "./VideoPreview";
 
 function bytesToHex(bytes: Uint8Array): string {
   let hex = "";
@@ -37,10 +39,11 @@ export default function FileViewer({
 
   const isImage = entry.mimeType.startsWith("image/");
   const isAudio = entry.mimeType.startsWith("audio/");
+  const video = isVideo(entry);
   const [bytes, setBytes] = useState(new Uint8Array());
   const [error, setError] = useState("");
   useEffect(() => {
-    if (isImage || isAudio) return;
+    if (isImage || isAudio || video) return;
     const controller = new AbortController();
     void fetch(entry.dataUrl, { signal: controller.signal, headers: { Range: "bytes=0-65535" } })
       .then(async (response) => {
@@ -49,7 +52,7 @@ export default function FileViewer({
         if (!controller.signal.aborted) setBytes(bytes.subarray(0, 65536));
       }).catch((reason) => { if (!controller.signal.aborted) setError(reason.message); });
     return () => controller.abort();
-  }, [entry.dataUrl, isImage, isAudio]);
+  }, [entry.dataUrl, isImage, isAudio, video]);
 
   return (
     <div className="file-viewer" role="region" aria-label={`Viewing ${entry.name}`}>
@@ -116,7 +119,8 @@ export default function FileViewer({
               src={entry.dataUrl}
             />
           )}
-          {!isImage && !isAudio && (
+          {video && <VideoPreview key={`${entry.id}-${entry.dataUrl}`} file={entry} />}
+          {!isImage && !isAudio && !video && (
             <div className="file-viewer-hex">
               {error && <p role="alert">{error}</p>}
               <div className="file-viewer-hex-label">Hex</div>

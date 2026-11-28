@@ -19,6 +19,7 @@ const { parseControls, savedControls, selectPath, searchPassages, studioDefault 
 const { parseCircuit, circuitNets, checkCircuit, pinPosition } = load("circuit");
 const { parseMeshes, parseWorld, projectVertex, transformVertex, drawScene, IDENTITY } = load("scene3d");
 const { parseHexBytes, transferBytes } = load("usb");
+const { isVideo } = load("media");
 const { simulate } = load("simulation");
 const { diffLines } = load("textDiff");
 const { workspaceResizeAt, resizeCursor } = load("geometry");
@@ -49,6 +50,23 @@ test("document previews select different shared files and publish text for compa
   const right = documentSource(previews, "text|preview-1", "").text;
   assert.equal(left, workspaceText(previews[0]));
   assert.deepEqual(diffLines(left, right).filter((line) => line.kind !== "same"), [{ kind: "add", text: "Amount: 20" }, { kind: "remove", text: "Amount: 10" }]);
+});
+
+test("video sources support MIME and filename detection without misclassifying audio recordings", () => {
+  for (const [name, mimeType] of [["clip.mp4", "video/mp4"], ["clip", "VIDEO/WEBM; codecs=vp9"], ["clip.MOV", "application/octet-stream"], ["clip.webm", ""], ["clip.mkv", "application/octet-stream"]]) {
+    assert.equal(isVideo({ name, mimeType }), true, name);
+  }
+  for (const [name, mimeType] of [["synth-recording.webm", "audio/webm"], ["sound.ogg", "audio/ogg"], ["note.mp4", "text/plain"], ["report.pdf", "application/pdf"], ["notes.txt", "application/octet-stream"]]) {
+    assert.equal(isVideo({ name, mimeType }), false, name);
+  }
+  const video = { id: "clip", name: "demo.mp4", mimeType: "application/octet-stream", dataUrl: "/api/files/demo" };
+  const fileSource = { id: "files", contents: [video] };
+  const generatedSource = { id: "generated", contents: [], tool: { kind: "playground", output: "old text", files: [video] } };
+  assert.equal(documentSource([fileSource], "", "").file, video);
+  assert.equal(documentSource([generatedSource], "file|generated|clip", "").file, video);
+  assert.equal(documentSource([generatedSource], "file|generated|clip", "").text, "");
+  assert.equal(documentSource([generatedSource], "text|generated", "").text, "old text");
+  assert.equal(documentSource([fileSource], "file|files|removed", "").missing, true);
 });
 
 test("legacy circuit defaults normalize pins, wire indices, and power components", () => {

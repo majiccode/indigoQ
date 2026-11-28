@@ -6,6 +6,8 @@ import { connectedControls, useLiveRevision } from "@/lib/studioRuntime";
 import { workspaceFiles, workspaceTable, workspaceText } from "@/lib/workspaceData";
 import { MarkdownDocument } from "./DocumentWorkspace";
 import { StudioShell, useStudio } from "./StudioKit";
+import { isVideo } from "@/lib/media";
+import VideoPreview from "./VideoPreview";
 
 export default function DashboardWorkspace(props: TypedWorkspaceProps) {
   const app = useStudio(props, "dashboard");
@@ -21,10 +23,10 @@ export default function DashboardWorkspace(props: TypedWorkspaceProps) {
       return <section className="dashboard-card" key={source.id}><header><a href={`/workspace?id=${encodeURIComponent(source.id)}`}>{source.name}</a><button aria-label={`Hide ${source.name}`} onClick={() => app.setting(`hide:${source.id}`, true)}>×</button></header>
         {numeric.length > 1 && <svg viewBox="0 0 400 150" className="studio-visual"><polyline stroke="#c8a4ff" fill="none" strokeWidth="2" points={numeric.map(([x, y]) => `${10 + (x - minX) / (maxX - minX || 1) * 380},${140 - (y - minY) / (maxY - minY || 1) * 130}`).join(" ")} /></svg>}
         {table ? <div className="data-table-container"><table className="data-table"><thead><tr>{table.columns.map((name, i) => <th key={i}>{name}</th>)}</tr></thead><tbody>{table.rows.slice(0, 10).map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}</tbody></table><small>{table.rows.length} rows</small></div> : <MarkdownDocument text={text} />}
-        {files.map((file) => file.mimeType.startsWith("image/") ? <a key={file.id} href={file.dataUrl} download={file.name}><Image src={file.dataUrl} alt={file.name} width={600} height={400} unoptimized /></a> : file.mimeType.startsWith("audio/") ? <audio key={file.id} controls src={file.dataUrl} /> : <a key={file.id} href={file.dataUrl} download={file.name}>{file.name}</a>)}
+        {files.map((file) => isVideo(file) ? <VideoPreview key={`${file.id}-${file.dataUrl}`} file={file} /> : file.mimeType.startsWith("image/") ? <a key={file.id} href={file.dataUrl} download={file.name}><Image src={file.dataUrl} alt={file.name} width={600} height={400} unoptimized /></a> : file.mimeType.startsWith("audio/") ? <audio key={file.id} controls src={file.dataUrl} /> : <a key={file.id} href={file.dataUrl} download={file.name}>{file.name}</a>)}
       </section>;
     })}</div>
-    {!app.sources.length && <p className="tool-hint">Connect any workspace → Dashboard to compose live tables, charts, Markdown, images, audio, and control metrics.</p>}
+    {!app.sources.length && <p className="tool-hint">Connect any workspace → Dashboard to compose live tables, charts, Markdown, images, audio, video, and control metrics.</p>}
     <details className="tool-details"><summary>Visible cards</summary>{app.sources.map((source) => <label key={source.id}><input type="checkbox" checked={app.state.settings[`hide:${source.id}`] !== true} onChange={(event) => app.setting(`hide:${source.id}`, !event.target.checked)} />{source.name}</label>)}</details>
   </StudioShell>;
 }

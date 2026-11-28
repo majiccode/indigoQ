@@ -6,6 +6,9 @@ Download: https://github.com/majiccode/indigoQ/releases/tag/v0.1.6
 
 ## Short announcement
 
+**One-line pitch:** Small tools. Big connections. A local visual workbench for
+documents, data, and your next idea.
+
 I’ve been building **indigoQ**, a free, open-source visual workbench that runs
 locally on your computer.
 
@@ -17,6 +20,9 @@ Try one connection: **PDF → Document Preview → Text to Speech**. Choose a vo
 and click **Speak it all**—no Ollama model required.
 
 I’d love to hear which workflow you try and where you get stuck.
+
+Start with the [visual tour](https://majiccode.github.io/indigoQ/#tour), then
+download the app and try the Chart Studio or Creative Workshop example.
 
 https://majiccode.github.io/indigoQ/
 

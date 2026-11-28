@@ -248,7 +248,7 @@ Additional mini-apps are available from the workspace type picker. See the
 | **HTTP / API Client** | HTTP methods, headers/body, response status/headers/timing, cancellation, and explicitly started periodic refresh. Responses publish text and, where possible, a table. Requests run through the backend; redirects are returned rather than followed. |
 | **Transform** | JSON-path extraction (`$.items[0].name`), array filtering by field substring, per-record templates (`{{field}}`), regex extraction in a time-limited worker. Run explicitly to publish text/table results. |
 | **SQL Explorer** | Read-only SQLite queries against connected `input1`, `input2`, … tables. Joins, grouping, and aggregates. Isolated backend memory database, 3-second query limit, 10,000 output rows. |
-| **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, Word (.docx) documents, PDF text extraction, connected live source, Markdown download, print/PDF, and explicit published text snapshots. |
+| **Document Preview** | Markdown, GFM tables, fenced code, inline/display mathematics, Word (.docx), PDF text extraction, and connected video playback with native controls and download fallback. Document text publishes automatically for comparison or speech; videos do not publish transcripts. |
 | **Diff / Compare** | Two local or connected text sources, JSON formatting, line-level additions/removals, and publish-right-side action. |
 | **Image Studio** | Local/connected images, percentage crop, resize, brightness/contrast/saturation, text annotation, RGBA pixel inspection. **Publish PNG** exposes edited images to other workspaces and saves `edited.png` into any connected FileWorkspace; connect to a vision-capable Ollama model. |
 | **ASCII Art** | Render connected images as ASCII or braille art, or Data Table / Math Lab tables as sparklines. Output is text — wire to Document Preview, Text to Speech, or any text consumer. Publish saves a `.txt` file into connected FileWorkspaces. |
@@ -259,7 +259,7 @@ Additional mini-apps are available from the workspace type picker. See the
 | **World Builder** | Place meshes from connected model exports, edit instance positions and scale, and export scene JSON. |
 | **Model Bench** | Sequential model × temperature comparisons with shared connected context, streaming progress, timings, stop, 1–5 ratings, and a published results table. |
 | **Knowledge Library** | Local keyword-ranked passage search across connected text and UTF-8 files, source workspace links and character offsets. Search output can be selected as Ollama context. This first version uses lexical retrieval rather than embeddings. |
-| **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, and audio; title, card visibility, print/PDF. |
+| **Dashboard** | Connected control metrics, numerical charts, table previews, Markdown, images, audio, and video; title, card visibility, print/PDF. |
 | **Chart Studio** | Connected tables as line, scatter, grouped bar, or histogram charts; X/Y/series mapping, hover values, log axes, reference line, zoom/pan, and brush selection. Publish all or selected rows as a table snapshot; export SVG or PNG, with PNG saved to outgoing FileWorkspaces. |
 | **Speech to Text** | Full-workspace live microphone FFT, red recording toggle, language selection, interim transcription preview, and persistent transcript with text download. Wire → TextEditor to append finalized phrases or → Ollama to dictate its prompt; other studio text consumers can read the live output. Uses browser Web Speech recognition, which may require internet. |
 | **Text to Speech** | Reads connected text aloud using your browser's built-in speech synthesis (no LLM or network needed). Connect Document Preview, TextEditor, Ollama, or another text source → here. Use **Speak it all** to read the full current text immediately, or **Follow** to read only text added after activation (for live/typing sources such as a TextEditor). Voice, rate, and pitch are honored from the dropdowns; click **Stop** to cancel. Voice options depend on your operating system. |
@@ -275,6 +275,19 @@ For a complete voice-to-data pipeline, load **Voice Expense Detective**: dictate
 purchases, extract structured records with Ollama, aggregate them with SQL, and
 explore spending in Chart Studio. Sample results are preloaded so the chart works
 before you record or run a model; PNG exports go into Evidence Files.
+
+### Video preview — watch connected media
+
+Connect **FileWorkspace → Document Preview**, add a video to FileWorkspace, and
+select it from **Document source**. Use the player's Play, seek, volume, and
+fullscreen controls, or download the original file. FileWorkspace's file viewer
+and connected Dashboard cards also support video playback.
+
+Video is recognized by its MIME type, with common video filename extensions used
+for files whose type is missing or `application/octet-stream`. Actual playback
+depends on browser codecs. Videos never autoplay and are not decoded as document
+text. Selecting one clears the previous text output; video transcription is not
+included.
 
 ### Text to Speech — read documents and text aloud
 

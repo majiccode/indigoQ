@@ -21,6 +21,9 @@ It publishes the website, not the local application.
 ## Editing workflow guides
 
 The landing page highlights data, documents, local AI, and **Creative Workshop**.
+Its **visual tour** uses accessible expandable walkthroughs and an actual app
+screenshot to demonstrate PDF read-aloud, chart exports, local AI, and 3D scenes.
+These are illustrations and guides, rather than a hosted instance of the app.
 Creative guides cover ASCII Art, Ambient Mood, USB Debug, Electronic Workshop,
 and the 3D Modeler → World Builder pipeline. The shared starter graph is
 `frontend/public/examples/creative-workshop.json`.
