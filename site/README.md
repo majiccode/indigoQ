@@ -20,6 +20,12 @@ It publishes the website, not the local application.
 
 ## Editing workflow guides
 
+The homepage's **Watch indigoQ in action** section embeds the narrated introduction
+at https://www.youtube.com/watch?v=347NDTBdziw using a responsive, lazy-loaded
+YouTube privacy-enhanced player. It has no autoplay and includes a direct
+YouTube link. Update both links in `scripts/build-site.mjs` and the README when
+replacing the video.
+
 The landing page highlights data, documents, local AI, and **Creative Workshop**.
 Its **visual tour** uses accessible expandable walkthroughs and an actual app
 screenshot to demonstrate PDF read-aloud, chart exports, local AI, and 3D scenes.

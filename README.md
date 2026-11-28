@@ -14,6 +14,10 @@ persisted locally and to a small FastAPI service.
 
 ## See it in action
 
+**[Watch the indigoQ introduction on YouTube](https://www.youtube.com/watch?v=347NDTBdziw)** —
+a short narrated overview with app screenshots and an illustrated PDF read-aloud
+workflow. You can also [watch it on the website](https://majiccode.github.io/indigoQ/#watch).
+
 Connect live workspaces on the canvas, then open any workspace fullscreen to
 explore the details. These screenshots show examples included with indigoQ.
 
