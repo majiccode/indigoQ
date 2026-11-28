@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { transformInput } from "@/lib/transform";
 import { autoUpdateEnabled } from "@/lib/autoUpdate";
+import { inputFingerprint } from "@/lib/dataflow";
 import { useAutoProcess } from "./useAutoProcess";
 import { StudioShell, SourceSelect, sourceText, useStudio } from "./StudioKit";
 
@@ -12,13 +13,14 @@ export default function TransformWorkspace(props: TypedWorkspaceProps) {
   const mode = String(app.state.settings.mode ?? "path");
   const input = sourceText(app.sources, app.state.settings.source, String(app.state.settings.input ?? "[{\"name\":\"sample\",\"value\":2}]"));
   const autoUpdate = autoUpdateEnabled(props.workspace);
+  const signature = inputFingerprint(JSON.stringify([input, mode, app.state.text, app.state.settings.path, app.state.settings.contains, app.state.settings.pattern, app.state.settings.flags]));
   const latest = useRef(app);
   const generation = useRef(0);
   useEffect(() => { latest.current = app; });
   const execute = async (text: string) => {
     const request = ++generation.current;
     const result = await transformInput(text, latest.current.state);
-    if (request === generation.current) latest.current.patch(result);
+    if (request === generation.current) latest.current.patch({ ...result, settings: { ...latest.current.state.settings, processedInput: signature } });
   };
   useAutoProcess(autoUpdate, input.trim() ? JSON.stringify([input, mode, app.state.text, app.state.settings.path, app.state.settings.contains, app.state.settings.pattern, app.state.settings.flags]) : "", () => latest.current.run(() => execute(input)));
   return <StudioShell kind="transform" status={app.status} error={app.error} actions={<button disabled={app.busy} onClick={() => void app.run(() => execute(input))}>Run transform</button>}>
@@ -30,6 +32,8 @@ export default function TransformWorkspace(props: TypedWorkspaceProps) {
     {mode === "template" && <label className="tool-field">Template using {"{{field.path}}"}<textarea value={app.state.text} onChange={(event) => app.patch({ text: event.target.value })} /></label>}
     {mode === "regex" && <div className="tool-toolbar"><input aria-label="Regex pattern" value={String(app.state.settings.pattern ?? "[0-9]+")} onChange={(event) => app.setting("pattern", event.target.value)} /><input aria-label="Regex flags" value={String(app.state.settings.flags ?? "g")} onChange={(event) => app.setting("flags", event.target.value)} /></div>}
     <pre className="studio-output">{app.state.output}</pre>
+    <p className="tool-hint" role="status">{!input.trim() ? "Waiting for source text. Run the connected model or select a source." : app.state.settings.processedInput === signature ? "Published snapshot matches the current input." : app.state.output || app.state.table ? "Input or operation changed. Previous published result retained; run transform to update it." : "Input ready. Run transform to publish a result."}</p>
+    {app.state.table && <small className="tool-hint">Ready: {app.state.table.rows.length} rows, {app.state.table.columns.length} columns. In a connected Data Table, choose this workspace — table under Import connected input.</small>}
     <small className="tool-hint">{autoUpdate ? "Following source output automatically." : "Press Run transform to process the input snapshot."} Enable Auto-update on downstream SQL to continue the pipeline automatically.</small>
   </StudioShell>;
 }

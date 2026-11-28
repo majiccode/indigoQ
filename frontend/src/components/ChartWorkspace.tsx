@@ -119,6 +119,7 @@ export default function ChartWorkspace(props: TypedWorkspaceProps) {
       <text x="70" y="443" fill="#b4c5b5" fontSize="11" fontFamily="sans-serif">{hover !== null && points[hover] ? `${points[hover].series} · ${points[hover].label} · ${axisValue(points[hover].y, options.logY)}` : `${points.length} plotted marks · ${selected.length} selected rows`}</text>
     </svg>
     <div className="chart-legend">{series.slice(0, 24).map((name) => <span key={name}><i style={{ background: colour(name) }} />{name}</span>)}</div>
+    {!!points.length && <small className="tool-hint">Reading {source?.name}: X = {x}{options.kind !== "histogram" ? `, Y = ${y}` : ""}. Edit your Data Table to update this chart. Choose Export PNG to save an image.</small>}
     {!points.length && <p className="tool-hint">Connect Data Table, SQL, Simulation or Math Lab → Chart Studio, then choose numeric columns. Empty, non-numeric and invalid logarithmic values are omitted.</p>}
     <small className="tool-hint">Drag to brush rows; Shift-drag pans. Publish creates a saved table snapshot for Data Table, SQL, Ollama or Dashboard. PNG export also saves chart.png to outgoing FileWorkspaces.</small>
   </StudioShell>;

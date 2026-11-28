@@ -1,0 +1,17 @@
+{
+  "format": "indigoq", "version": 1,
+  "graph": {
+    "workspaces": [
+      { "id": "records-start", "name": "Start here — Notes to structured data", "type": "text-editor", "x": 0, "y": 0, "width": 420, "height": 430, "contents": [], "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "NOTES TO STRUCTURED DATA\n\nA sample completed response is preloaded so you can try the downstream tools without Ollama.\n\n1. Open Extract Records and inspect the sample output.\n2. Open Validate JSON and press Run transform. Path $ accepts the whole array. Invalid JSON shows an error instead of replacing the table.\n3. Open Records and choose Validate JSON — table under Import connected input.\n4. Edit a record or export CSV.\n5. To generate your own records: start Ollama, choose an installed model, edit Source Notes, and press Run in Extract Records. Repeat steps 2 and 3.\n\nSuccess: the notes become inspectable rows with item and amount fields. Generation and imports are explicit; no model runs when loading this example." } },
+      { "id": "records-notes", "name": "Source Notes", "type": "text-editor", "x": 490, "y": 0, "width": 400, "height": 380, "contents": [], "editor": { "name": "notes.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "Office purchases:\nNotebook: 6.50\nPens: 3.00\nCoffee: 4.25" } },
+      { "id": "records-ai", "name": "Extract Records", "type": "ollama", "x": 960, "y": 0, "width": 520, "height": 600, "contents": [], "tool": { "kind": "ollama", "model": "", "prompt": "Extract purchases from the connected notes. Return ONLY a JSON array of objects with item (string) and amount (number). No prose or Markdown.", "system": "Extract records accurately. Do not invent missing values.", "temperature": 0, "jsonOutput": true, "output": "[{\"item\":\"Notebook\",\"amount\":6.5},{\"item\":\"Pens\",\"amount\":3},{\"item\":\"Coffee\",\"amount\":4.25}]", "context": "", "sourceIds": ["records-notes"] } },
+      { "id": "records-transform", "name": "Validate JSON", "type": "transform", "x": 1550, "y": 0, "width": 440, "height": 420, "contents": [], "autoUpdate": false, "tool": { "kind": "transform", "settings": { "mode": "path", "path": "$", "source": "records-ai" }, "text": "", "output": "", "table": null } },
+      { "id": "records-table", "name": "Records", "type": "data-table", "x": 2060, "y": 0, "width": 460, "height": 450, "contents": [], "autoUpdate": false, "tool": { "kind": "data-table", "columns": ["item", "amount"], "rows": [] } }
+    ],
+    "wires": [
+      { "id": "notes-ai", "source": "records-notes", "sourcePort": { "side": "right", "t": 0.5 }, "target": "records-ai", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "ai-transform", "source": "records-ai", "sourcePort": { "side": "right", "t": 0.5 }, "target": "records-transform", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "transform-table", "source": "records-transform", "sourcePort": { "side": "right", "t": 0.5 }, "target": "records-table", "targetPort": { "side": "left", "t": 0.5 } }
+    ]
+  }
+}

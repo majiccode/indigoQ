@@ -14,6 +14,16 @@ persisted locally and to a small FastAPI service.
 
 ## See it in action
 
+**New here?** Open **Graph files → Examples** and try **PDF Read-aloud**,
+**Chart Studio**, or **Notes to Structured Data**. Each includes sample input and
+a Start here guide. See [three first workflows](docs/FIRST_WORKFLOWS.md) for
+steps and a first-user feedback checklist.
+
+The header's **Start here** button opens these starters directly and lets you
+save the current graph before replacing it. Workspace input badges distinguish
+live inputs, captured snapshots, and newly available input; Run and Import
+remain explicit where appropriate.
+
 **[Watch the indigoQ introduction on YouTube](https://www.youtube.com/watch?v=347NDTBdziw)** —
 a short narrated overview with app screenshots and an illustrated PDF read-aloud
 workflow. You can also [watch it on the website](https://majiccode.github.io/indigoQ/#watch).

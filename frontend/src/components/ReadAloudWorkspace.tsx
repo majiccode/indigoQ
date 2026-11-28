@@ -1,164 +1,70 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { connectedWorkspaces, type TypedWorkspaceProps } from "@/lib/workspaceRegistry";
 import { workspaceText } from "@/lib/workspaceData";
+import { appendedText, SpeechQueue } from "@/lib/readAloud";
 import { StudioShell, useStudio } from "./StudioKit";
 
 export default function ReadAloudWorkspace(props: TypedWorkspaceProps) {
   const app = useStudio(props, "text-to-speech");
-  const [voice, setVoice] = useState<string | null>(String(app.state.settings.ttsVoice ?? null));
-  const [rate, setRate] = useState(Number(app.state.settings.ttsRate ?? 1));
-  const [pitch, setPitch] = useState(Number(app.state.settings.ttsPitch ?? 1));
-  const [follow, setFollow] = useState(app.state.settings.follow === true);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [speaking, setSpeaking] = useState(false);
-  const utterance = useRef<SpeechSynthesisUtterance | null>(null);
-  const ttsActive = useRef(false);
-  const spokenLength = useRef(0);
-  const pendingText = useRef("");
-  const prevFollow = useRef(false);
-  const speakRef = useRef<((chunk: string) => void) | null>(null);
-  const speakAllRef = useRef<(() => void) | null>(null);
-  const toggleRef = useRef<(() => void) | null>(null);
-  const stopRef = useRef<(() => void) | null>(null);
-
-  const source = connectedWorkspaces(props.graph, props.workspace.id, "incoming", "text")[0];
+  const [paused, setPaused] = useState(false);
+  // Following is a playback session, never restored automatically from a graph.
+  const [follow, setFollow] = useState(false);
+  const [error, setError] = useState("");
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const queue = useRef<SpeechQueue<SpeechSynthesisUtterance> | null>(null);
+  const settings = useRef(app.state.settings);
+  const baseline = useRef({ source: "", text: "" });
+  const sources = connectedWorkspaces(props.graph, props.workspace.id, "incoming", "text");
+  const source = app.state.settings.source ? sources.find((s) => s.id === app.state.settings.source) : sources[0];
   const text = source ? workspaceText(source) : "";
-
-  const speakChunk = useCallback((chunk: string) => {
-    if (!chunk.trim() || ttsActive.current) return;
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+  const voice = String(app.state.settings.ttsVoice ?? "");
+  const rate = Math.max(0.5, Math.min(2, Number(app.state.settings.ttsRate) || 1));
+  const pitch = Math.max(0, Math.min(2, Number(app.state.settings.ttsPitch ?? 1)));
+  useEffect(() => { settings.current = app.state.settings; }, [app.state.settings]);
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) { const timer = setTimeout(() => setAvailable(false), 0); return () => clearTimeout(timer); }
+    const synth = window.speechSynthesis;
+    const refresh = () => { setAvailable(true); setVoices(synth.getVoices()); };
+    // The initial list can be empty; voiceschanged supplies asynchronously loaded voices.
+    synth.addEventListener("voiceschanged", refresh);
+    const timer = setTimeout(refresh, 0);
+    queue.current = new SpeechQueue(synth, (chunk) => {
       const u = new SpeechSynthesisUtterance(chunk);
-      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
-      if (selectedVoice) u.voice = selectedVoice;
-      u.rate = rate;
-      u.pitch = pitch;
-      u.onend = () => {
-        ttsActive.current = false;
-        setSpeaking(false);
-        utterance.current = null;
-        const next = pendingText.current;
-        pendingText.current = "";
-        if (next.trim() && speakRef.current) speakRef.current(next);
-      };
-      u.onerror = () => {
-        ttsActive.current = false;
-        setSpeaking(false);
-        utterance.current = null;
-        const next = pendingText.current;
-        pendingText.current = "";
-        if (next.trim() && speakRef.current) speakRef.current(next);
-      };
-      utterance.current = u;
-      ttsActive.current = true;
-      setSpeaking(true);
-      window.speechSynthesis.speak(u);
-    }
-  }, [rate, pitch, voice]);
-
-  const toggleFollow = useCallback(() => {
-    const nextFollow = !follow;
-    setFollow(nextFollow);
-    app.setting("follow", nextFollow);
-    if (nextFollow) {
-      // Arm follow mode: mark current text as already spoken, wait for new text.
-      spokenLength.current = text.length;
-    }
-  }, [follow, text, app]);
-
-  const speakAll = useCallback(() => {
-    if (!text.trim() || ttsActive.current) return;
-    spokenLength.current = 0;
-    speakRef.current?.(text);
-    spokenLength.current = text.length;
-  }, [text]);
-
-  const stop = useCallback(() => {
-    ttsActive.current = false;
-    setSpeaking(false);
-    setFollow(false);
-    app.setting("follow", false);
-    spokenLength.current = 0;
-    prevFollow.current = false;
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    utterance.current = null;
-    pendingText.current = "";
-  }, [app]);
-
+      const chosen = String(settings.current.ttsVoice ?? "");
+      const selected = synth.getVoices().find((v) => v.voiceURI === chosen || v.name === chosen);
+      if (selected) { u.voice = selected; u.lang = selected.lang; }
+      u.rate = Math.max(0.5, Math.min(2, Number(settings.current.ttsRate) || 1));
+      u.pitch = Math.max(0, Math.min(2, Number(settings.current.ttsPitch ?? 1)));
+      return u;
+    }, (busy) => { setSpeaking(busy); if (!busy) setPaused(false); }, setError);
+    return () => { clearTimeout(timer); synth.removeEventListener("voiceschanged", refresh); queue.current?.dispose(); queue.current = null; };
+  }, []);
   useEffect(() => {
-    speakRef.current = speakChunk;
-    speakAllRef.current = speakAll;
-    toggleRef.current = toggleFollow;
-    stopRef.current = stop;
-
-    // Detect follow activation: mark all existing text as already spoken so
-    // only text added after activation is read aloud.
-    if (follow && !prevFollow.current) {
-      spokenLength.current = text.length;
-      prevFollow.current = true;
-      return;
-    }
-    prevFollow.current = follow;
-
-    if (!follow || !text.trim()) return;
-    if (text.length < spokenLength.current) spokenLength.current = 0;
-    const newPart = text.slice(spokenLength.current);
-    if (newPart.trim()) {
-      spokenLength.current = text.length;
-      if (ttsActive.current) {
-        pendingText.current = newPart;
-      } else if (speakRef.current) {
-        speakRef.current(newPart);
-      }
-    }
-  }, [follow, text, speakAll, speakChunk, toggleFollow, stop]);
-
-  useEffect(() => {
-    if (!ttsActive.current) return;
-    const u = utterance.current;
-    if (u) {
-      const selectedVoice = window.speechSynthesis.getVoices().find((v) => v.name === voice);
-      if (selectedVoice) u.voice = selectedVoice;
-      u.rate = rate;
-      u.pitch = pitch;
-    }
-  }, [voice, rate, pitch]);
-
-  return <StudioShell kind="text-to-speech" status={app.status} error={app.error}>
+    const previous = baseline.current;
+    baseline.current = { source: source?.id ?? "", text };
+    if (previous.source !== (source?.id ?? "")) { queue.current?.stop(); return; }
+    if (previous.text && !text.startsWith(previous.text)) { queue.current?.stop(); return; }
+    if (follow) queue.current?.enqueue(appendedText(previous.text, text));
+  }, [text, source?.id, follow]);
+  const stop = () => { queue.current?.stop(); setFollow(false); setPaused(false); };
+  const supported = available === true;
+  return <StudioShell kind="text-to-speech" status={`${app.status} · ${speaking ? paused ? "Paused" : "Speaking" : follow ? "Waiting for new text" : "Ready"}`} error={error || app.error}>
+    <label className="tool-field">Text source<select aria-label="Speech text source" value={String(app.state.settings.source ?? "")} onChange={(e) => { stop(); app.setting("source", e.target.value); }}><option value="">First connected text source</option>{sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+    {!supported && <p className="tool-hint">{available === null ? "Speech playback requires browser speech synthesis. Controls become available when voices load." : "Speech synthesis is unavailable in this browser."}</p>}
+    <label className="tool-field">Voice<select aria-label="TTS voice" value={voice} disabled={!supported} onChange={(e) => app.setting("ttsVoice", e.target.value)}><option value="">Default browser voice</option>{voice && !voices.some((v) => v.voiceURI === voice || v.name === voice) && <option value={voice}>{voice} (unavailable; using default)</option>}{voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}</select></label>
+    <div className="tool-toolbar"><label>Rate <input aria-label="Speech rate" type="range" min="0.5" max="2" step="0.1" value={rate} onChange={(e) => app.setting("ttsRate", Number(e.target.value))} /><output>{rate}×</output></label><label>Pitch <input aria-label="Speech pitch" type="range" min="0" max="2" step="0.1" value={pitch} onChange={(e) => app.setting("ttsPitch", Number(e.target.value))} /></label></div>
     <div className="tool-toolbar">
-      {source ? <span style={{ fontSize: 10, color: "#bac9ae" }}>Reading: {source.name}</span> : <span style={{ fontSize: 10, color: "#bac9ae" }}>No text source connected</span>}
+      <button disabled={!supported || !text.trim() || speaking} onClick={() => { setError(""); baseline.current = { source: source?.id ?? "", text }; queue.current?.enqueue(text); }}>Speak it all</button>
+      <button disabled={!supported || !source} aria-pressed={follow} onClick={() => { baseline.current = { source: source?.id ?? "", text }; setFollow(!follow); }}>{follow ? "Following…" : "Follow"}</button>
+      <button disabled={!speaking} onClick={() => { if (paused) queue.current?.resume(); else queue.current?.pause(); setPaused(!paused); }}>{paused ? "Resume" : "Pause"}</button>
+      <button disabled={!speaking && !follow} onClick={stop}>Stop</button>
     </div>
-    <label className="tool-field" style={{ marginBottom: 6, fontSize: 11, color: "#bac9ae" }}>Read connected text aloud</label>
-    <select aria-label="TTS voice" value={voice ?? ""} onChange={(event) => { setVoice(event.target.value); app.setting("ttsVoice", event.target.value); }} style={{ width: "100%", marginBottom: 6 }}>
-      <option value="">Default voice</option>
-      {("speechSynthesis" in window ? window.speechSynthesis.getVoices() : []).map((v: SpeechSynthesisVoice) => <option key={v.name} value={v.name}>{v.name}{v.lang ? ` (${v.lang})` : ""}</option>)}
-    </select>
-    <div className="tool-toolbar" style={{ gap: 8, alignItems: "center" }}>
-      <label style={{ fontSize: 10, color: "#bac9ae", display: "flex", alignItems: "center", gap: 4 }}>Rate <input type="range" min="0.5" max="2" step={0.1} value={rate} onChange={(event) => { setRate(Number(event.target.value)); app.setting("ttsRate", Number(event.target.value)); }} /></label>
-      <label style={{ fontSize: 10, color: "#bac9ae", display: "flex", alignItems: "center", gap: 4 }}>Pitch <input type="range" min={0} max={2} step={0.1} value={pitch} onChange={(event) => { setPitch(Number(event.target.value)); app.setting("ttsPitch", Number(event.target.value)); }} /></label>
-    </div>
-    <div className="tool-toolbar" style={{ marginTop: 6 }}>
-      <button
-        disabled={!text.trim() || app.busy || speaking}
-        onClick={() => toggleRef.current?.()}
-        aria-pressed={follow}
-        style={follow ? { background: "#c4a4ed", color: "#172012" } : undefined}
-      >
-        {follow ? "Following…" : "Follow"}
-      </button>
-      <button
-        disabled={!text.trim() || app.busy || speaking}
-        onClick={() => speakAllRef.current?.()}
-        style={{ marginLeft: 6 }}
-      >
-        Speak it all
-      </button>
-      <button disabled={!speaking} onClick={() => stopRef.current?.()}>Stop</button>
-    </div>
-    {text.trim() && <small className="tool-hint" style={{ marginTop: 4 }}>{text.slice(0, 200)}{text.length > 200 ? "…" : ""}</small>}
-    {!source && <small className="tool-hint">Wire a TextEditor, DocumentWorkspace, Ollama, or Data Table → here to read its text aloud.</small>}
-    {follow && <small className="tool-hint">Follow mode is on — new text is read as it arrives.</small>}
-    <small className="tool-hint">Uses your browser&apos;s built-in speech synthesis (no LLM or network needed). Voice options depend on your operating system.</small>
+    <p className="tool-hint">{source ? text.trim() ? `${text.length.toLocaleString()} characters ready from ${source.name}.` : `Waiting for text from ${source.name}. For a PDF, select it in Document Preview and wait for extraction. Scanned PDFs need OCR.` : "Connect Document Preview, TextEditor, or Ollama → here, then select a text source."}</p>
+    {text.trim() && <details><summary>Preview text to read</summary><pre className="studio-output">{text.slice(0, 2000)}{text.length > 2000 ? "…" : ""}</pre></details>}
+    <small className="tool-hint">Speak it all reads the current text in short chunks. Follow reads newly appended text only; replaced documents establish a new baseline. Stop cancels playback and follow mode. Rate/voice changes apply to the next chunk. Voice quality depends on your browser and installed voices; no Ollama model is required.</small>
   </StudioShell>;
 }

@@ -20,6 +20,8 @@ const { parseCircuit, circuitNets, checkCircuit, pinPosition } = load("circuit")
 const { parseMeshes, parseWorld, projectVertex, transformVertex, drawScene, IDENTITY } = load("scene3d");
 const { parseHexBytes, transferBytes } = load("usb");
 const { isVideo } = load("media");
+const { SpeechQueue, speechChunks, appendedText } = load("readAloud");
+const { inputState, inputFingerprint, hasPublishedOutput } = load("dataflow");
 const { simulate } = load("simulation");
 const { diffLines } = load("textDiff");
 const { workspaceResizeAt, resizeCursor } = load("geometry");
@@ -67,6 +69,52 @@ test("video sources support MIME and filename detection without misclassifying a
   assert.equal(documentSource([generatedSource], "file|generated|clip", "").text, "");
   assert.equal(documentSource([generatedSource], "text|generated", "").text, "old text");
   assert.equal(documentSource([fileSource], "file|files|removed", "").missing, true);
+});
+
+test("speech queue reads long documents sequentially, preserves appended updates, and ignores canceled callbacks", () => {
+  const spoken = [], states = [], errors = [];
+  const synth = { speak(u) { spoken.push(u); }, cancel() {}, pause() {}, resume() {} };
+  const queue = new SpeechQueue(synth, (text) => ({ text, onend: null, onerror: null }), (busy) => states.push(busy), (e) => errors.push(e));
+  const long = "A sentence about a document. ".repeat(60);
+  const chunks = speechChunks(long);
+  assert.ok(chunks.length > 1 && chunks.every((s) => s.length <= 350));
+  assert.equal(chunks.join(" "), long.trim());
+  queue.enqueue(long);
+  queue.enqueue("First appended phrase.");
+  queue.enqueue("Second appended phrase.");
+  let index = 0;
+  while (index < spoken.length) spoken[index++].onend();
+  assert.deepEqual(spoken.map((u) => u.text), [...chunks, "First appended phrase.", "Second appended phrase."]);
+  assert.equal(states.at(-1), false);
+  queue.enqueue("Cancel me");
+  const canceled = spoken.at(-1);
+  queue.stop(); queue.enqueue("New session");
+  canceled.onend();
+  assert.equal(spoken.at(-1).text, "New session");
+  spoken.at(-1).onerror({ error: "network" });
+  assert.match(errors[0], /network/);
+  assert.equal(appendedText("Hello", "Hello world"), " world");
+  assert.equal(appendedText("Old document", "New document"), "");
+});
+
+test("speech pause resumes pending chunks and disposal cannot restart playback", () => {
+  const spoken = [], synth = { speak(u) { spoken.push(u); }, cancel() {}, pause() {}, resume() {} };
+  const queue = new SpeechQueue(synth, (text) => ({ text, onend: null, onerror: null }), () => {}, () => {});
+  queue.enqueue("One"); queue.enqueue("Two"); queue.pause();
+  spoken[0].onend(); assert.equal(spoken.length, 1);
+  queue.resume(); assert.equal(spoken[1].text, "Two");
+  queue.dispose(); spoken[1].onend(); assert.equal(spoken.length, 2);
+});
+
+test("structured data starter turns sample model output into editable records", async () => {
+  const graph = parseGraphFile(fs.readFileSync(new URL("../public/examples/structured-data.json", import.meta.url), "utf8"));
+  const ai = graph.workspaces.find((w) => w.id === "records-ai");
+  const transform = graph.workspaces.find((w) => w.id === "records-transform");
+  const result = await transformInput(ai.tool.output, transform.tool);
+  assert.deepEqual(result.table.columns, ["item", "amount"]);
+  assert.deepEqual(result.table.rows, [["Notebook", "6.5"], ["Pens", "3"], ["Coffee", "4.25"]]);
+  await assert.rejects(transformInput("not valid JSON", transform.tool));
+  assert.equal(transform.autoUpdate, false);
 });
 
 test("legacy circuit defaults normalize pins, wire indices, and power components", () => {
@@ -144,6 +192,18 @@ test("auto-update policy preserves explicit flags and legacy preview defaults", 
   const source = { id: "source", type: "ollama", tool: { output: "one" } };
   const graph = { workspaces: [source, { id: "target" }], wires: [{ source: "source", target: "target" }] };
   assert.equal(incomingSnapshot(graph, "target"), incomingSnapshot({ ...graph, workspaces: [{ ...source, x: 999 }, { id: "target", tool: { output: "other" } }] }, "target"));
+});
+
+test("dataflow status distinguishes snapshots, changed inputs, and published output", () => {
+  const graph = { workspaces: [{ id: "source", tool: { output: "one" } }, { id: "target" }], wires: [{ source: "source", target: "target" }] };
+  assert.equal(inputState(graph, graph, "target", true), "Live inputs");
+  assert.equal(inputState(graph, graph, "target", false), "Input snapshot");
+  const changed = { ...graph, workspaces: [{ id: "source", tool: { output: "two" } }, { id: "target" }] };
+  assert.equal(inputState(changed, graph, "target", false), "New input available");
+  assert.equal(inputState({ ...graph, wires: [] }, graph, "target", false), "No connected inputs");
+  assert.notEqual(inputFingerprint("one"), inputFingerprint("two"));
+  assert.equal(hasPublishedOutput({ tool: { output: "", table: null, files: [] } }), false);
+  assert.equal(hasPublishedOutput({ tool: { output: "answer" } }), true);
 });
 
 test("transform accepts fenced Ollama JSON and clears tables for empty extraction", async () => {
@@ -265,7 +325,7 @@ test("Math Lab publishes sampled tables using connected equations and knob overr
 });
 
 test("graph files roundtrip complete examples and accept raw API/store JSON", () => {
-  for (const name of ["creative-workshop", "oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio", "voice-to-ollama", "voice-expense-detective"]) {
+  for (const name of ["pdf-read-aloud", "structured-data", "creative-workshop", "oscillator-lab", "measurements", "local-ai", "interactive-studio", "data-workbench", "research-media", "chart-studio", "voice-to-ollama", "voice-expense-detective"]) {
     const text = fs.readFileSync(new URL(`../public/examples/${name}.json`, import.meta.url), "utf8");
     const graph = parseGraphFile(text);
     assert.deepEqual(parseGraphFile(serializeGraph(graph)), graph);

@@ -29,13 +29,13 @@ const guides = [
     intro: "Give your eyes a break. Drop in a PDF, connect its extracted text to Text to Speech, and listen using your browser’s speech synthesis.",
     flow: "FileWorkspace → Document Preview → Text to Speech",
     steps: [
-      ["Add a PDF", "Create a FileWorkspace and drop in a PDF containing selectable text. Create a Document Preview and wire the FileWorkspace to it."],
+      ["Start with a sample", "Open Graph files → Examples → PDF Read-aloud. It includes a small PDF, Document Preview, and Text to Speech already connected. Save your existing graph before loading an example."],
       ["Choose the document", "Open Document Preview fullscreen, select the PDF in the document-source selector, and wait for text extraction to finish."],
       ["Connect and listen", "Create a Text to Speech workspace and connect Document Preview → Text to Speech. Choose a voice, rate, and pitch, then click Speak it all. Click Stop to cancel playback."],
-      ["Try other text sources", "The same speech workspace can read a TextEditor or Ollama response. For a live text source, Follow reads text added after you activate it."],
+      ["Try your own document", "Drop your PDF into PDF Files, then select it in Document Preview. Pause and Resume control playback; Stop cancels it. For a live text source, Follow reads text appended after activation."],
     ],
     note: "Text to Speech uses browser speech synthesis; Ollama is not required. Voices depend on your browser and operating system. Scanned PDFs need OCR to supply text, and indigoQ does not currently include OCR. The reading follows extracted text order, which may differ from a complex page layout.",
-    image: null,
+    related: "pdf-read-aloud", relatedName: "PDF Read-aloud", image: null,
   },
   {
     slug: "compare-pdf-documents-locally", title: "Compare two PDF documents locally", category: "Documents → previews → diff",

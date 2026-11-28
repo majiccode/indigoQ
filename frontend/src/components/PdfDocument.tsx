@@ -16,8 +16,8 @@ export default function PdfDocument({ file, onText, onError }: { file: ContentEn
     let active = true;
     let task: ReturnType<typeof import("pdfjs-dist")["getDocument"]> | undefined;
     void (async () => {
-      const pdfjs = await import("pdfjs-dist");
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString();
       const response = await fetch(file.dataUrl);
       if (!response.ok) throw new Error("Unable to load PDF");
       const data = await response.arrayBuffer();

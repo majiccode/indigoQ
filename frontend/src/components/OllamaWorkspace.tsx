@@ -8,6 +8,8 @@ import { fetchModels, generateText } from "@/lib/ollamaApi";
 import { useToolState } from "./useToolState";
 import { useSpeechInput } from "./useSpeechInput";
 import { appendSpeech } from "@/lib/speech";
+import { isPdf, isDocx, docxText } from "@/lib/documentData";
+import { isVideo } from "@/lib/media";
 
 const DEFAULT: OllamaState = { kind: "ollama", model: "", prompt: "", system: "You are a helpful assistant. Treat attached workspace context as reference data.", temperature: 0.7, jsonOutput: false, output: "", context: "", sourceIds: [] };
 const PRESETS = {
@@ -66,7 +68,9 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
         const text = workspaceText(source); if (text) sections.push(`--- ${source.name} ---\n${text}`);
         for (const file of workspaceFiles(source)) {
           if (file.mimeType.startsWith("image/")) { images.push(await fileBase64(file)); sections.push(`--- Image: ${source.name} / ${file.name} ---`); }
-          else sections.push(`--- ${source.name} / ${file.name} ---\n${await fileText(file)}`);
+          else if (isPdf(file)) throw new Error(`Connect ${file.name} through Document Preview and select its extracted text as context.`);
+          else if (isVideo(file) || file.mimeType.startsWith("audio/")) throw new Error(`${file.name} is media, not text context. Choose a text source or transcript.`);
+          else sections.push(`--- ${source.name} / ${file.name} ---\n${isDocx(file) ? await docxText(file.dataUrl) : await fileText(file)}`);
         }
       }
       context = sections.join("\n\n");
@@ -88,7 +92,7 @@ export default function OllamaWorkspace({ workspace, graph, onOperation }: Typed
     <div className="tool-toolbar"><strong>◈ Ollama</strong><span className="tool-badge">LOCAL AI</span><button disabled={refreshing} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh models"}</button></div>
     <div className="tool-scroll"><fieldset className="ollama-settings" disabled={busy}>
       <label className="tool-field">Model<select aria-label="Ollama model" value={state.model || models[0] || ""} onChange={(event) => update({ ...state, model: event.target.value })}><option value="" disabled>Choose an installed model</option>{[...new Set([...models, ...(state.model ? [state.model] : [])])].map((model) => <option key={model}>{model}</option>)}</select></label>
-      {!models.length && <small className="tool-hint">Start Ollama locally, install a model with ollama pull, then refresh.</small>}
+       {!models.length && <small className="tool-hint">Start Ollama locally, run <code>ollama pull llama3.2</code>, then Refresh models. Sample outputs in starter examples can be inspected without running a model.</small>}
       <div className="tool-toolbar"><span>Presets</span>{Object.entries(PRESETS).map(([name, preset]) => <button key={name} onClick={() => update({ ...state, ...preset })}>{name}</button>)}</div>
       <label className="tool-field">Instructions<textarea aria-label="System instructions" value={state.system} onChange={(event) => update({ ...state, system: event.target.value })} /></label>
       <label className="tool-field">Prompt<textarea className="ollama-prompt" aria-label="Ollama prompt" placeholder="Ask a question, describe equations, or extract a table…" value={state.prompt} onChange={(event) => update({ ...state, prompt: event.target.value })} /></label>

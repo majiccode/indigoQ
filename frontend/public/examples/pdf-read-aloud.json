@@ -1,0 +1,15 @@
+{
+  "format": "indigoq", "version": 1,
+  "graph": {
+    "workspaces": [
+      { "id": "pdf-start", "name": "Start here — PDF read-aloud", "type": "text-editor", "x": 0, "y": 0, "width": 400, "height": 430, "contents": [], "editor": { "name": "README.txt", "sourceWorkspaceId": null, "sourceFileId": null, "text": "PDF READ-ALOUD\n\n1. Open Read Aloud fullscreen. The sample PDF is already selected in Document Preview.\n2. Wait for text extraction, choose a voice, and press Speak it all.\n3. Try Pause, Resume, and Stop.\n4. To use your own PDF, drop it into PDF Files, then choose it in Document Preview's Document source selector.\n\nSuccess: you hear the selected document, can stop playback, and can save/load the graph without speech starting automatically.\n\nNo Ollama model is needed. Browser voices vary. Scanned PDFs need OCR; OCR is not included. Video sources do not produce transcripts." } },
+      { "id": "pdf-files", "name": "PDF Files", "type": "content-source", "x": 470, "y": 0, "width": 380, "height": 380, "contents": [{ "id": "sample-pdf", "name": "welcome.pdf", "mimeType": "application/pdf", "size": 713, "dataUrl": "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMTY4ID4+CnN0cmVhbQpCVCAvRjEgMjAgVGYgNjAgNzMwIFRkIChXZWxjb21lIHRvIGluZGlnb1EpIFRqIDAgLTQwIFRkIC9GMSAxMiBUZiAoVGhpcyBzYW1wbGUgUERGIGlzIHJlYWR5IHRvIHJlYWQgYWxvdWQuKSBUaiAwIC0yNCBUZCAoQ2hvb3NlIGEgdm9pY2UsIHRoZW4gY2xpY2sgU3BlYWsgaXQgYWxsLikgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDMxMSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjUzMAolJUVPRgo=" }] },
+      { "id": "pdf-preview", "name": "Document Preview", "type": "document-preview", "x": 920, "y": 0, "width": 550, "height": 600, "contents": [], "tool": { "kind": "document-preview", "settings": { "source": "file|pdf-files|sample-pdf" }, "text": "", "output": "" } },
+      { "id": "pdf-speech", "name": "Read Aloud", "type": "text-to-speech", "x": 1540, "y": 0, "width": 500, "height": 500, "contents": [] }
+    ],
+    "wires": [
+      { "id": "pdf-to-preview", "source": "pdf-files", "sourcePort": { "side": "right", "t": 0.5 }, "target": "pdf-preview", "targetPort": { "side": "left", "t": 0.5 } },
+      { "id": "preview-to-speech", "source": "pdf-preview", "sourcePort": { "side": "right", "t": 0.5 }, "target": "pdf-speech", "targetPort": { "side": "left", "t": 0.5 } }
+    ]
+  }
+}

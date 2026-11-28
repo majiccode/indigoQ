@@ -1514,3 +1514,13 @@ input:focus-visible {
 .video-preview video { display: block; width: 100%; max-height: 70vh; background: #000; border-radius: 6px; }
 .video-preview figcaption { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; overflow-wrap: anywhere; }
 .video-preview small { color: #9cad91; }
+.starter-button { border: 1px solid #a88be2; border-radius: 8px; background: #292043; color: #eee5ff; padding: 8px 12px; cursor: pointer; }
+.starter-hint { position: absolute; top: 76px; left: 16px; z-index: 25; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: calc(100% - 32px); padding: 12px 16px; border: 1px solid #76619d; border-radius: 10px; background: #171329; color: #e9e1f7; font-size: 12px; }
+.starter-hint button { border: 1px solid #76619d; border-radius: 6px; padding: 6px 10px; background: #292043; color: inherit; cursor: pointer; }
+.starter-dialog { width: min(900px, calc(100vw - 32px)); max-height: 90vh; overflow-y: auto; }
+.starter-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.starter-cards article { padding: 16px; border: 1px solid #55466e; border-radius: 10px; background: #171329; }
+.starter-cards h3 { font-size: 17px; }.starter-cards p { font-size: 13px; line-height: 1.6; }
+.starter-cards button { padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+.workspace-flow-state { font-size: 10px; color: #c9b5ec; white-space: nowrap; }
+@media (max-width: 650px) { .starter-cards { grid-template-columns: 1fr; }.starter-hint { top: 68px; }.starter-button { font-size: 12px; padding: 6px 8px; } }

@@ -8,6 +8,7 @@ import { getWorkspaceType } from "@/lib/workspaceRegistry";
 import { enqueueWorkspaceOperation, uploadContents, workspaceOperation, type WorkspaceOperation } from "@/lib/graphApi";
 import type { Graph, Workspace as WorkspaceModel } from "@/lib/types";
 import { autoUpdateEnabled } from "@/lib/autoUpdate";
+import { hasPublishedOutput, inputState } from "@/lib/dataflow";
 
 interface WorkspaceProps {
   workspace: WorkspaceModel;
@@ -63,11 +64,12 @@ export default function Workspace({ workspace, graph, onGraphChange, onWorkspace
       {workspace.type !== null && (
         <div className="workspace-type-toolbar" onDoubleClick={(event) => { event.stopPropagation(); onExpand?.(); }}>
           {definition && <span className="workspace-io-label">{definition.inputs.join(", ") || "—"} → ${definition.outputs.join(", ") || "—"}</span>}
-          {!!definition?.inputs.length && <><label className="workspace-auto-update" title="Follow incoming data. Ollama Run, recording and playback remain manual."><input type="checkbox" aria-label="Auto-update connected inputs" checked={autoUpdate} onChange={(event) => {
+           {!!definition?.inputs.length && <><span className="workspace-flow-state" role="status">{inputState(graph, inputSnapshot, workspace.id, autoUpdate)}</span><label className="workspace-auto-update" title="Follow incoming data. Ollama Run, recording and playback remain manual."><input type="checkbox" aria-label="Auto-update connected inputs" checked={autoUpdate} onChange={(event) => {
             const enabled = event.target.checked;
             setInputSnapshot(graph);
             void operate({ kind: "autoUpdate", enabled }).catch((reason) => setError((reason as Error).message));
-          }} />Auto-update</label>{!autoUpdate && <button type="button" onClick={() => setInputSnapshot(graph)}>Refresh inputs</button>}</>}
+           }} />Auto-update</label>{!autoUpdate && <button type="button" title="Update available input; run or import in the tool to replace its results" onClick={() => setInputSnapshot(graph)}>Refresh inputs</button>}</>}
+           {hasPublishedOutput(workspace) && <span className="workspace-flow-state" title="Last published result. Live input changes do not necessarily run this tool.">Published output</span>}
           {onExpand && <button type="button" aria-label="Open workspace fullscreen" title="Open workspace fullscreen" onClick={onExpand}>⛶</button>}
         </div>
       )}
