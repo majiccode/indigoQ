@@ -34,7 +34,7 @@ from .store import GraphStore
 from .studio import router as studio_router
 from .system import router as system_router
 
-APP_VERSION = "0.1.6"
+APP_VERSION = "0.1.7"
 CONTENT_SOURCE_TYPE = "content-source"
 DEFAULT_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "graph.json"
 DEFAULT_ORIGINS = (
