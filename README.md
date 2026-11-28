@@ -54,6 +54,17 @@ exports. USB access begins only after connecting a device explicitly.
 [Explore the example graph](frontend/public/examples/creative-workshop.json) ·
 [Read the workspace reference](docs/WORKSPACES.md)
 
+### Listen to your PDFs
+
+Connect **FileWorkspace → Document Preview → Text to Speech**, select a PDF,
+and click **Speak it all** to listen to its extracted text. Choose a browser voice
+and adjust rate and pitch; no Ollama model is required.
+
+[Follow the PDF read-aloud guide](https://majiccode.github.io/indigoQ/listen-to-pdf-documents/)
+
+Want to share indigoQ? The [launch kit](docs/LAUNCH.md) includes announcement copy
+and a short demo recording script.
+
 **Try them:** [download a portable build](https://github.com/majiccode/indigoQ/releases),
 open the file-menu icon in the app header, and choose **Examples**. Each example
 loads a complete canvas you can explore and edit.

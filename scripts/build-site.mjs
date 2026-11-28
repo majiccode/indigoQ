@@ -11,6 +11,20 @@ const version = JSON.parse(readFileSync(path.join(root, "package.json"))).versio
 const escape = text => String(text).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 const guides = [
   {
+    slug: "listen-to-pdf-documents", title: "Listen to your PDF documents", category: "PDF → document text → speech",
+    description: "Read PDF documents aloud with indigoQ: connect Document Preview to Text to Speech and choose a browser voice, rate, and pitch. No Ollama model required.",
+    intro: "Give your eyes a break. Drop in a PDF, connect its extracted text to Text to Speech, and listen using your browser’s speech synthesis.",
+    flow: "FileWorkspace → Document Preview → Text to Speech",
+    steps: [
+      ["Add a PDF", "Create a FileWorkspace and drop in a PDF containing selectable text. Create a Document Preview and wire the FileWorkspace to it."],
+      ["Choose the document", "Open Document Preview fullscreen, select the PDF in the document-source selector, and wait for text extraction to finish."],
+      ["Connect and listen", "Create a Text to Speech workspace and connect Document Preview → Text to Speech. Choose a voice, rate, and pitch, then click Speak it all. Click Stop to cancel playback."],
+      ["Try other text sources", "The same speech workspace can read a TextEditor or Ollama response. For a live text source, Follow reads text added after you activate it."],
+    ],
+    note: "Text to Speech uses browser speech synthesis; Ollama is not required. Voices depend on your browser and operating system. Scanned PDFs need OCR to supply text, and indigoQ does not currently include OCR. The reading follows extracted text order, which may differ from a complex page layout.",
+    image: null,
+  },
+  {
     slug: "compare-pdf-documents-locally", title: "Compare two PDF documents locally", category: "Documents → previews → diff",
     description: "Preview two PDFs from one file workspace and compare their extracted text with indigoQ’s local visual workflow.",
     intro: "Keep two documents visible while comparing their text. Connect one FileWorkspace to two Document Preview workspaces, then send both previews to Diff / Compare.",
@@ -138,7 +152,7 @@ function layout({ title, description, slug = "", body, article = false }) {
     screenshot: origin + base + "images/interactive-studio.png", isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     author: { "@type": "Person", name: "Paul Adams", url: "https://github.com/majiccode" },
-    featureList: ["Infinite visual workspace canvas", "PDF preview and text comparison", "CSV tables and interactive charts", "Local AI through Ollama", "Live equations and simulations", "Circuit editing and connectivity checks", "3D modeling and scene composition", "ASCII and Braille art", "Text-derived ambient controls", "Browser USB debugging"],
+    featureList: ["Infinite visual workspace canvas", "PDF preview, text comparison, and read-aloud speech", "CSV tables and interactive charts", "Local AI through Ollama", "Live equations and simulations", "Circuit editing and connectivity checks", "3D modeling and scene composition", "ASCII and Braille art", "Text-derived ambient controls", "Browser USB debugging"],
   };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -166,6 +180,7 @@ const body = `<section class="hero wrap"><div class="eyebrow">VISUAL WORKFLOWS �
 <p class="lead">indigoQ is a local-first visual workbench for files, data, AI, and creative tools. Connect workspaces on an infinite canvas to explore documents, build charts, design circuits, compose 3D scenes, and experiment with local models.</p>
 <div class="actions"><a class="button" href="#download">Download indigoQ <span aria-hidden="true">↓</span></a><a class="text-link" href="#examples">See what you can build →</a></div><p class="muted">Free portable builds for macOS, Windows, and Linux. No Node or Python install needed.</p></section>
 <figure class="hero-image wrap"><img src="${base}images/interactive-studio.png" width="1760" height="1080" alt="indigoQ infinite canvas connecting shared controls, a spring simulation, an HTML playground, a live curve, and an experiment dashboard" fetchpriority="high"><figcaption>One canvas. Connected controls, simulations, equations, and dashboards.</figcaption></figure>
+<section class="wrap section" id="listen"><div class="eyebrow">TRY ONE USEFUL CONNECTION</div><h2>Listen to your PDF documents.</h2><p class="intro">Drop in a PDF, connect Document Preview to Text to Speech, and click <strong>Speak it all</strong>. Pick a voice and adjust the reading speed. No Ollama model required.</p><div class="flow" aria-label="PDF read-aloud workflow">FileWorkspace → Document Preview → Text to Speech</div><div class="actions"><a class="button" href="${base}listen-to-pdf-documents/">Follow the read-aloud guide →</a><a class="text-link" href="#download">Download indigoQ ↓</a></div><p class="muted">Uses extracted PDF text and browser speech synthesis. Scanned documents need OCR; voices depend on your browser and operating system.</p></section>
 <section class="wrap section" id="examples"><div class="eyebrow">LESS SETUP. MORE EXPLORING.</div><h2>A small workspace for each big idea.</h2><p class="intro">Start from a bundled example, connect the pieces, and make it your own.</p>
 <div class="feature-grid"><article class="card"><span class="tag">01 / DATA</span><h3>From rows to insight</h3><p>Edit tables, compare chart series, brush points, and export the results. Keep your data flow visible as it grows.</p><a href="${base}csv-data-visualization/">Explore CSV & chart workflows →</a></article><article class="card"><span class="tag">02 / DOCUMENTS</span><h3>Read. Connect. Compare.</h3><p>Preview PDFs and Markdown, pick different files in separate workspaces, and compare their extracted text.</p><a href="${base}compare-pdf-documents-locally/">Compare two PDFs locally →</a></article><article class="card"><span class="tag">03 / LOCAL AI</span><h3>Give your model a workbench</h3><p>Connect Ollama output to equations, JSON transforms, and tables. Inspect each step and keep control of what runs.</p><a href="${base}local-ai-workflows-ollama/">Build an Ollama workflow →</a></article></div>
 <div class="showcase"><img src="${base}images/chart-studio.png" width="1280" height="1200" loading="lazy" alt="Chart Studio plotting weekly sales for North and South regions with chart controls and export tools"><div><div class="eyebrow">CHART STUDIO</div><h2>Your data has a story.<br>Find its shape.</h2><p>Line, scatter, bar, and histogram charts. Multiple series. Selection brushes. Exportable images and data.</p><a class="text-link" href="${base}csv-data-visualization/">Follow the charting guide →</a></div></div>
